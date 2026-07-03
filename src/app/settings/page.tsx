@@ -1,13 +1,23 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useInvoice } from "@/context/InvoiceContext";
 import { Card, CardHeader } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input, Textarea } from "@/components/FormFields";
+import { TemplatePicker } from "@/components/TemplatePicker";
 import { LoadingState } from "@/components/EmptyState";
+import type { InvoiceTemplateId } from "@/lib/types";
 
 export default function SettingsPage() {
   const { data, isLoaded, updateSettings } = useInvoice();
+  const [templateId, setTemplateId] = useState<InvoiceTemplateId>("classic");
+
+  useEffect(() => {
+    if (isLoaded) {
+      setTemplateId(data.settings.templateId ?? "classic");
+    }
+  }, [isLoaded, data.settings.templateId]);
 
   if (!isLoaded) return <LoadingState />;
 
@@ -23,6 +33,7 @@ export default function SettingsPage() {
       phone: formData.get("phone") as string,
       address: formData.get("address") as string,
       taxRate: parseFloat(formData.get("taxRate") as string) || 0,
+      templateId,
     });
     alert("Settings saved!");
   };
@@ -32,11 +43,11 @@ export default function SettingsPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
         <p className="mt-1 text-slate-500">
-          Configure your business details for invoices
+          Configure your business details and default invoice template
         </p>
       </div>
 
-      <Card>
+      <Card className="mb-6">
         <CardHeader
           title="Company Information"
           description="This appears on your invoices and PDFs"
@@ -75,6 +86,17 @@ export default function SettingsPage() {
               rows={3}
             />
           </div>
+
+          <div className="sm:col-span-2">
+            <h3 className="mb-3 text-sm font-medium text-slate-700">
+              Default Invoice Template
+            </h3>
+            <TemplatePicker
+              value={templateId}
+              onChange={setTemplateId}
+            />
+          </div>
+
           <div className="sm:col-span-2">
             <Button type="submit">Save Settings</Button>
           </div>

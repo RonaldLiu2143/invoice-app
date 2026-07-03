@@ -17,7 +17,8 @@ A modern invoice management app built with Next.js, React, and Tailwind CSS.
 - **Auto-calculations** — Subtotal, tax, and total computed automatically
 - **PDF export** — Download professional invoice PDFs
 - **Email & Share** — Open email client with pre-filled invoice, or share/copy invoice details
-- **Settings** — Configure your business name, contact info, and default tax rate
+- **Settings** — Configure your business name, contact info, default tax rate, and invoice template
+- **5 invoice templates** — Classic, Modern, Bold, Elegant, and Minimal (preview + PDF)
 
 Data is stored locally in your browser (localStorage) — no account or server required.
 

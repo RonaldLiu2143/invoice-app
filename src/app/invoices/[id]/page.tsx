@@ -19,12 +19,14 @@ import { InvoiceForm } from "@/components/InvoiceForm";
 import { LoadingState } from "@/components/EmptyState";
 import {
   calculateTotals,
-  formatCurrency,
   formatDate,
-  lineItemTotal,
 } from "@/lib/calculations";
 import { downloadInvoicePDF } from "@/lib/pdf";
 import { getMailtoLink, shareInvoice } from "@/lib/share";
+import { resolveTemplateId, INVOICE_TEMPLATES } from "@/lib/templates";
+import { InvoicePreview } from "@/components/invoice-templates";
+import { Select } from "@/components/FormFields";
+import type { InvoiceTemplateId } from "@/lib/types";
 
 export default function InvoiceDetailPage({
   params,
@@ -77,6 +79,12 @@ export default function InvoiceDetailPage({
   const handleDownloadPDF = () => {
     if (!customer) return;
     downloadInvoicePDF(invoice, customer, data.settings);
+  };
+
+  const activeTemplateId = resolveTemplateId(invoice, data.settings);
+
+  const handleTemplateChange = (templateId: InvoiceTemplateId) => {
+    updateInvoice(invoice.id, { templateId });
   };
 
   const handleEmail = () => {
@@ -171,101 +179,34 @@ export default function InvoiceDetailPage({
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            From
-          </h2>
-          <p className="font-semibold text-slate-900">{data.settings.name}</p>
-          {data.settings.email && (
-            <p className="text-sm text-slate-600">{data.settings.email}</p>
-          )}
-          {data.settings.phone && (
-            <p className="text-sm text-slate-600">{data.settings.phone}</p>
-          )}
-          {data.settings.address && (
-            <p className="text-sm text-slate-600">{data.settings.address}</p>
-          )}
-        </Card>
-
-        <Card>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Bill To
-          </h2>
-          {customer ? (
-            <>
-              <p className="font-semibold text-slate-900">{customer.name}</p>
-              {customer.email && (
-                <p className="text-sm text-slate-600">{customer.email}</p>
-              )}
-              {customer.phone && (
-                <p className="text-sm text-slate-600">{customer.phone}</p>
-              )}
-              {customer.address && (
-                <p className="text-sm text-slate-600">{customer.address}</p>
-              )}
-            </>
-          ) : (
-            <p className="text-slate-500">Customer not found</p>
-          )}
-        </Card>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <Select
+          label="Invoice template"
+          value={activeTemplateId}
+          onChange={(e) =>
+            handleTemplateChange(e.target.value as InvoiceTemplateId)
+          }
+          className="max-w-xs"
+        >
+          {INVOICE_TEMPLATES.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </Select>
       </div>
 
-      <Card className="mt-6 !p-0 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
-              <th className="px-6 py-3 font-medium">Description</th>
-              <th className="px-6 py-3 font-medium text-right">Qty</th>
-              <th className="px-6 py-3 font-medium text-right">Unit Price</th>
-              <th className="px-6 py-3 font-medium text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoice.lineItems.map((item) => (
-              <tr
-                key={item.id}
-                className="border-b border-slate-100 last:border-0"
-              >
-                <td className="px-6 py-4 text-slate-900">{item.description}</td>
-                <td className="px-6 py-4 text-right text-slate-600">
-                  {item.quantity}
-                </td>
-                <td className="px-6 py-4 text-right text-slate-600">
-                  {formatCurrency(item.unitPrice)}
-                </td>
-                <td className="px-6 py-4 text-right font-medium">
-                  {formatCurrency(lineItemTotal(item))}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="border-t border-slate-200 p-6">
-          <div className="ml-auto w-64 space-y-2 text-sm">
-            <div className="flex justify-between text-slate-600">
-              <span>Subtotal</span>
-              <span>{formatCurrency(totals.subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>Tax ({invoice.taxRate}%)</span>
-              <span>{formatCurrency(totals.tax)}</span>
-            </div>
-            <div className="flex justify-between border-t border-slate-200 pt-2 text-lg font-bold text-slate-900">
-              <span>Total</span>
-              <span>{formatCurrency(totals.total)}</span>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {invoice.notes && (
-        <Card className="mt-6">
-          <h2 className="mb-2 text-sm font-semibold text-slate-500">Notes</h2>
-          <p className="text-sm text-slate-700 whitespace-pre-wrap">
-            {invoice.notes}
-          </p>
-        </Card>
+      {customer ? (
+        <InvoicePreview
+          templateId={activeTemplateId}
+          invoice={invoice}
+          customer={customer}
+          settings={data.settings}
+          status={effectiveStatus}
+          totals={totals}
+        />
+      ) : (
+        <Card className="p-8 text-center text-slate-500">Customer not found</Card>
       )}
     </div>
   );

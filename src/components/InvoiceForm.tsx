@@ -13,7 +13,8 @@ import {
   formatCurrency,
   lineItemTotal,
 } from "@/lib/calculations";
-import type { Invoice, InvoiceLineItem } from "@/lib/types";
+import type { Invoice, InvoiceLineItem, InvoiceTemplateId } from "@/lib/types";
+import { INVOICE_TEMPLATES } from "@/lib/templates";
 
 function todayISO() {
   return new Date().toISOString().split("T")[0];
@@ -44,6 +45,9 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
   );
   const [dueDate, setDueDate] = useState(invoice?.dueDate ?? dueDateISO());
   const [notes, setNotes] = useState(invoice?.notes ?? "");
+  const [templateId, setTemplateId] = useState<InvoiceTemplateId>(
+    invoice?.templateId ?? data.settings.templateId ?? "classic"
+  );
 
   const totals = calculateTotals(lineItems, taxRate);
 
@@ -99,6 +103,7 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
       issueDate,
       dueDate,
       notes,
+      templateId,
     };
 
     if (invoice) {
@@ -161,6 +166,19 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
             value={taxRate}
             onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
           />
+          <Select
+            label="Template"
+            value={templateId}
+            onChange={(e) =>
+              setTemplateId(e.target.value as InvoiceTemplateId)
+            }
+          >
+            {INVOICE_TEMPLATES.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </Select>
         </div>
       </Card>
 
