@@ -1,0 +1,123 @@
+{
+  "settings": {
+    "name": "Acme Consulting",
+    "email": "billing@acmeconsulting.com",
+    "phone": "(555) 123-4567",
+    "address": "123 Business Ave, San Francisco, CA 94102",
+    "taxRate": 8.5
+  },
+  "nextInvoiceNumber": 1004,
+  "customers": [
+    {
+      "id": "cust-1",
+      "name": "Northwind Traders",
+      "email": "accounts@northwind.com",
+      "phone": "(555) 987-6543",
+      "address": "456 Commerce St, Seattle, WA 98101",
+      "createdAt": "2026-06-01T10:00:00.000Z"
+    },
+    {
+      "id": "cust-2",
+      "name": "Globex Corporation",
+      "email": "ap@globex.com",
+      "phone": "(555) 246-8135",
+      "address": "789 Market Blvd, Austin, TX 78701",
+      "createdAt": "2026-06-10T10:00:00.000Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-1",
+      "name": "Consulting — Hourly",
+      "description": "Professional consulting services",
+      "price": 150,
+      "createdAt": "2026-06-01T10:00:00.000Z"
+    },
+    {
+      "id": "prod-2",
+      "name": "Website Maintenance",
+      "description": "Monthly website upkeep and support",
+      "price": 500,
+      "createdAt": "2026-06-01T10:00:00.000Z"
+    },
+    {
+      "id": "prod-3",
+      "name": "Logo Design",
+      "description": "Custom brand identity package",
+      "price": 1200,
+      "createdAt": "2026-06-01T10:00:00.000Z"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "inv-1",
+      "invoiceNumber": "1001",
+      "customerId": "cust-1",
+      "lineItems": [
+        {
+          "id": "li-1",
+          "productId": "prod-1",
+          "description": "Consulting — Hourly",
+          "quantity": 12,
+          "unitPrice": 150
+        }
+      ],
+      "taxRate": 8.5,
+      "status": "paid",
+      "issueDate": "2026-05-15",
+      "dueDate": "2026-06-15",
+      "notes": "Thank you for your business!",
+      "createdAt": "2026-05-15T10:00:00.000Z",
+      "updatedAt": "2026-05-20T10:00:00.000Z"
+    },
+    {
+      "id": "inv-2",
+      "invoiceNumber": "1002",
+      "customerId": "cust-2",
+      "lineItems": [
+        {
+          "id": "li-2",
+          "productId": "prod-2",
+          "description": "Website Maintenance",
+          "quantity": 1,
+          "unitPrice": 500
+        },
+        {
+          "id": "li-3",
+          "productId": "prod-3",
+          "description": "Logo Design",
+          "quantity": 1,
+          "unitPrice": 1200
+        }
+      ],
+      "taxRate": 8.5,
+      "status": "unpaid",
+      "issueDate": "2026-06-01",
+      "dueDate": "2026-07-01",
+      "notes": "Payment due within 30 days.",
+      "createdAt": "2026-06-01T10:00:00.000Z",
+      "updatedAt": "2026-06-01T10:00:00.000Z"
+    },
+    {
+      "id": "inv-3",
+      "invoiceNumber": "1003",
+      "customerId": "cust-1",
+      "lineItems": [
+        {
+          "id": "li-4",
+          "productId": "prod-1",
+          "description": "Consulting — Hourly",
+          "quantity": 8,
+          "unitPrice": 150
+        }
+      ],
+      "taxRate": 8.5,
+      "status": "unpaid",
+      "issueDate": "2026-05-01",
+      "dueDate": "2026-05-31",
+      "notes": "",
+      "createdAt": "2026-05-01T10:00:00.000Z",
+      "updatedAt": "2026-05-01T10:00:00.000Z"
+    }
+  ]
+}
