@@ -12,6 +12,7 @@ export const defaultAppData: AppData = {
     phone: "",
     address: "",
     taxRate: 8.5,
+    templateId: "classic",
   },
   nextInvoiceNumber: 1001,
 };
@@ -21,7 +22,12 @@ export function loadAppData(): AppData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultAppData;
-    return { ...defaultAppData, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...defaultAppData,
+      ...parsed,
+      settings: { ...defaultAppData.settings, ...parsed.settings },
+    };
   } catch {
     return defaultAppData;
   }

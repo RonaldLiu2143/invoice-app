@@ -1,5 +1,12 @@
 export type InvoiceStatus = "paid" | "unpaid" | "overdue";
 
+export type InvoiceTemplateId =
+  | "classic"
+  | "modern"
+  | "bold"
+  | "elegant"
+  | "minimal";
+
 export interface Customer {
   id: string;
   name: string;
@@ -35,6 +42,7 @@ export interface Invoice {
   issueDate: string;
   dueDate: string;
   notes: string;
+  templateId?: InvoiceTemplateId;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,6 +59,7 @@ export interface CompanySettings {
   phone: string;
   address: string;
   taxRate: number;
+  templateId: InvoiceTemplateId;
 }
 
 export interface AppData {
