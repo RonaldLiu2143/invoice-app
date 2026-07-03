@@ -9,7 +9,7 @@ import {
 
 export function ElegantTemplate(props: InvoiceTemplateProps) {
   const { invoice, customer, settings, status, totals, compact } = props;
-  const pad = compact ? "p-4" : "p-8";
+  const pad = compact ? "p-4" : "p-4 sm:p-8";
 
   return (
     <div
@@ -17,7 +17,7 @@ export function ElegantTemplate(props: InvoiceTemplateProps) {
       style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
     >
       <div className={`border-b-2 border-amber-200 ${pad}`}>
-        <div className="flex justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
           <div>
             <p className={`text-amber-900 ${compact ? "text-lg" : "text-2xl"}`}>
               {settings.name}
@@ -43,7 +43,7 @@ export function ElegantTemplate(props: InvoiceTemplateProps) {
         </div>
       </div>
 
-      <div className="mx-8 overflow-hidden rounded border border-amber-200 bg-white">
+      <div className="mx-4 overflow-hidden rounded border border-amber-200 bg-white sm:mx-8">
         <LineItemsTable
           invoice={invoice}
           compact={compact}

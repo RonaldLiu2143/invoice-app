@@ -17,32 +17,34 @@ export function LineItemsTable({
   headClass: string;
   rowClass?: string;
 }) {
-  const pad = compact ? "px-3 py-2" : "px-6 py-3";
+  const pad = compact ? "px-3 py-2" : "px-3 py-3 sm:px-6 sm:py-3";
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className={headClass}>
-          <th className={`${pad} text-left font-medium`}>Description</th>
-          <th className={`${pad} text-right font-medium`}>Qty</th>
-          <th className={`${pad} text-right font-medium`}>Price</th>
-          <th className={`${pad} text-right font-medium`}>Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        {invoice.lineItems.map((item) => (
-          <tr key={item.id} className={rowClass}>
-            <td className={pad}>{item.description}</td>
-            <td className={`${pad} text-right`}>{item.quantity}</td>
-            <td className={`${pad} text-right`}>
-              {formatCurrency(item.unitPrice)}
-            </td>
-            <td className={`${pad} text-right font-medium`}>
-              {formatCurrency(lineItemTotal(item))}
-            </td>
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[360px] text-sm">
+        <thead>
+          <tr className={headClass}>
+            <th className={`${pad} text-left font-medium`}>Description</th>
+            <th className={`${pad} text-right font-medium`}>Qty</th>
+            <th className={`${pad} text-right font-medium`}>Price</th>
+            <th className={`${pad} text-right font-medium`}>Amount</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {invoice.lineItems.map((item) => (
+            <tr key={item.id} className={rowClass}>
+              <td className={pad}>{item.description}</td>
+              <td className={`${pad} text-right`}>{item.quantity}</td>
+              <td className={`${pad} text-right`}>
+                {formatCurrency(item.unitPrice)}
+              </td>
+              <td className={`${pad} text-right font-medium`}>
+                {formatCurrency(lineItemTotal(item))}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

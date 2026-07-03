@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useInvoice } from "@/context/InvoiceContext";
 import { Card, CardHeader } from "@/components/Card";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/Button";
 import { Input, Textarea } from "@/components/FormFields";
 import { TemplatePicker } from "@/components/TemplatePicker";
@@ -40,12 +41,10 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
-        <p className="mt-1 text-slate-500">
-          Configure your business details and default invoice template
-        </p>
-      </div>
+      <PageHeader
+        title="Settings"
+        description="Configure your business details and default invoice template"
+      />
 
       <Card className="mb-6">
         <CardHeader

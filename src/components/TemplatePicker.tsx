@@ -1,9 +1,43 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import type { InvoiceTemplateId } from "@/lib/types";
 import { INVOICE_TEMPLATES } from "@/lib/templates";
 import { InvoicePreview } from "./invoice-templates";
 import type { InvoiceTemplateProps } from "./invoice-templates/types";
+
+function swatchStyle(templateId: InvoiceTemplateId): CSSProperties {
+  const theme = INVOICE_TEMPLATES.find((t) => t.id === templateId)?.theme;
+  if (!theme) return { background: "#f8fafc", color: "#334155" };
+
+  if (templateId === "modern") {
+    const [r, g, b] = theme.primary;
+    const [ar, ag, ab] = theme.accent;
+    return {
+      background: `linear-gradient(135deg, rgb(${r} ${g} ${b}), rgb(${ar} ${ag} ${ab}))`,
+      color: "#fff",
+    };
+  }
+
+  if (templateId === "bold") {
+    const [r, g, b] = theme.headerFill ?? theme.primary;
+    return { background: `rgb(${r} ${g} ${b})`, color: "#fff" };
+  }
+
+  if (templateId === "elegant") {
+    const [r, g, b] = theme.headerFill ?? [255, 251, 235];
+    return {
+      background: `rgb(${r} ${g} ${b})`,
+      color: `rgb(${theme.primary.join(" ")})`,
+    };
+  }
+
+  const [r, g, b] = theme.headerFill ?? [248, 250, 252];
+  return {
+    background: `rgb(${r} ${g} ${b})`,
+    color: `rgb(${theme.primary.join(" ")})`,
+  };
+}
 
 export function TemplatePicker({
   value,
@@ -38,21 +72,8 @@ export function TemplatePicker({
                 />
               ) : (
                 <div
-                  className="flex h-32 items-center justify-center text-sm font-medium text-slate-500"
-                  style={{
-                    background:
-                      template.id === "bold"
-                        ? "#0f172a"
-                        : template.id === "modern"
-                          ? "linear-gradient(135deg,#4f46e5,#8b5cf6)"
-                          : template.id === "elegant"
-                            ? "#fffbeb"
-                            : "#f8fafc",
-                    color:
-                      template.id === "bold" || template.id === "modern"
-                        ? "#fff"
-                        : "#334155",
-                  }}
+                  className="flex h-32 items-center justify-center text-sm font-medium"
+                  style={swatchStyle(template.id)}
                 >
                   {template.name}
                 </div>

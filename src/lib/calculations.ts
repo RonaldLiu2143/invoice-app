@@ -48,12 +48,14 @@ export function resolveInvoiceStatus(invoice: Invoice): InvoiceStatus {
   const balance = total - paid;
 
   if (balance <= PAID_TOLERANCE) return "paid";
-  if (paid > PAID_TOLERANCE) return "partial";
-  if (invoice.status === "overdue") return "overdue";
 
   const today = parseLocalDate(todayISO());
   const due = parseLocalDate(invoice.dueDate);
-  if (due < today) return "overdue";
+  const isPastDue = due < today || invoice.status === "overdue";
+
+  if (isPastDue && balance > PAID_TOLERANCE) return "overdue";
+  if (paid > PAID_TOLERANCE) return "partial";
+  if (isPastDue) return "overdue";
   return "unpaid";
 }
 

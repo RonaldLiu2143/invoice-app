@@ -10,15 +10,16 @@ A modern invoice management app built with Next.js, React, and Tailwind CSS.
 
 ## Features
 
-- **Dashboard** — Revenue overview, unpaid amounts, overdue count, recent invoices
-- **Customers** — Create and manage customer contacts
-- **Products & Services** — Catalog items with prices for quick invoice line items
-- **Invoices** — Create, edit, search, and filter by status (Paid / Unpaid / Overdue)
+- **Dashboard** — Revenue collected, unpaid balances, overdue count, recent invoices
+- **Customers** — Create and manage customer contacts with multi-field search
+- **Products & Services** — Catalog items with search by name, description, or price
+- **Invoices** — Create, edit, search, and filter by status (Paid / Unpaid / Partial / Overdue)
+- **Partial payments** — Record payments, track balance due, payment history
 - **Auto-calculations** — Subtotal, tax, and total computed automatically
+- **5 invoice templates** — Classic, Modern, Bold, Elegant, and Minimal (preview + PDF)
 - **PDF export** — Download professional invoice PDFs
 - **Email & Share** — Open email client with pre-filled invoice, or share/copy invoice details
-- **Settings** — Configure your business name, contact info, default tax rate, and invoice template
-- **5 invoice templates** — Classic, Modern, Bold, Elegant, and Minimal (preview + PDF)
+- **Settings** — Configure your business name, contact info, default tax rate, and template
 
 Data is stored locally in your browser (localStorage) — no account or server required.
 
@@ -31,13 +32,19 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Testing
+
+```bash
+npm test
+```
+
 ## Suggested Workflow
 
 1. Go to **Settings** and enter your business details
 2. Add **Customers** and **Products**
 3. Create an **Invoice**, add line items, and set dates
-4. Download PDF or email the invoice to your customer
-5. Mark as **Paid** when payment is received
+4. Record **partial or full payments** on the invoice detail page
+5. Download PDF or email the invoice to your customer
 
 ## Regenerating Screenshots
 
@@ -51,7 +58,7 @@ npm run screenshots
 - Payment reminders
 - Stripe payments
 - Multiple businesses
-- Custom invoice templates & company logo
+- Company logo upload
 - Multiple currencies
 - QR code payments
 - Expense tracking & reports

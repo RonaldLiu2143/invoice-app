@@ -138,8 +138,8 @@ export default function InvoiceDetailPage({
 
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
               Invoice #{invoice.invoiceNumber}
             </h1>
             <StatusBadge status={effectiveStatus} />
@@ -178,7 +178,7 @@ export default function InvoiceDetailPage({
         </div>
       )}
 
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex flex-wrap gap-2">
         {(["paid", "unpaid", "overdue"] as const).map((s) => (
           <Button
             key={s}
@@ -209,7 +209,7 @@ export default function InvoiceDetailPage({
           onChange={(e) =>
             handleTemplateChange(e.target.value as InvoiceTemplateId)
           }
-          className="max-w-xs"
+          className="w-full sm:max-w-xs"
         >
           {INVOICE_TEMPLATES.map((t) => (
             <option key={t.id} value={t.id}>

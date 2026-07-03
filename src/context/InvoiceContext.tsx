@@ -5,6 +5,8 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -19,7 +21,13 @@ import type {
   Payment,
   Product,
 } from "@/lib/types";
-import { resolveInvoiceStatus, getBalanceDue, PAYMENT_TOLERANCE } from "@/lib/calculations";
+import {
+  resolveInvoiceStatus,
+  getBalanceDue,
+  getAmountPaid,
+  calculateTotals,
+  PAYMENT_TOLERANCE,
+} from "@/lib/calculations";
 import { defaultAppData, loadAppData, saveAppData } from "@/lib/storage";
 
 interface InvoiceContextValue {
@@ -52,10 +60,13 @@ interface InvoiceContextValue {
 }
 
 const InvoiceContext = createContext<InvoiceContextValue | null>(null);
+const SAVE_DEBOUNCE_MS = 400;
 
 export function InvoiceProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(defaultAppData);
   const [isLoaded, setIsLoaded] = useState(false);
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
   useEffect(() => {
     setData(loadAppData());
@@ -63,12 +74,25 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isLoaded) saveAppData(data);
+    if (!isLoaded) return;
+    const timer = window.setTimeout(() => saveAppData(data), SAVE_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
   }, [data, isLoaded]);
 
-  const update = useCallback((updater: (prev: AppData) => AppData) => {
-    setData(updater);
-  }, []);
+  const customersById = useMemo(
+    () => new Map(data.customers.map((customer) => [customer.id, customer])),
+    [data.customers]
+  );
+
+  const productsById = useMemo(
+    () => new Map(data.products.map((product) => [product.id, product])),
+    [data.products]
+  );
+
+  const invoicesById = useMemo(
+    () => new Map(data.invoices.map((invoice) => [invoice.id, invoice])),
+    [data.invoices]
+  );
 
   const addCustomer = useCallback(
     (customer: Omit<Customer, "id" | "createdAt">) => {
@@ -77,36 +101,30 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
         id: uuidv4(),
         createdAt: new Date().toISOString(),
       };
-      update((prev) => ({
+      setData((prev) => ({
         ...prev,
         customers: [...prev.customers, newCustomer],
       }));
       return newCustomer;
     },
-    [update]
+    []
   );
 
-  const updateCustomer = useCallback(
-    (id: string, updates: Partial<Customer>) => {
-      update((prev) => ({
-        ...prev,
-        customers: prev.customers.map((c) =>
-          c.id === id ? { ...c, ...updates } : c
-        ),
-      }));
-    },
-    [update]
-  );
+  const updateCustomer = useCallback((id: string, updates: Partial<Customer>) => {
+    setData((prev) => ({
+      ...prev,
+      customers: prev.customers.map((customer) =>
+        customer.id === id ? { ...customer, ...updates } : customer
+      ),
+    }));
+  }, []);
 
-  const deleteCustomer = useCallback(
-    (id: string) => {
-      update((prev) => ({
-        ...prev,
-        customers: prev.customers.filter((c) => c.id !== id),
-      }));
-    },
-    [update]
-  );
+  const deleteCustomer = useCallback((id: string) => {
+    setData((prev) => ({
+      ...prev,
+      customers: prev.customers.filter((customer) => customer.id !== id),
+    }));
+  }, []);
 
   const addProduct = useCallback(
     (product: Omit<Product, "id" | "createdAt">) => {
@@ -115,95 +133,88 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
         id: uuidv4(),
         createdAt: new Date().toISOString(),
       };
-      update((prev) => ({
+      setData((prev) => ({
         ...prev,
         products: [...prev.products, newProduct],
       }));
       return newProduct;
     },
-    [update]
+    []
   );
 
-  const updateProduct = useCallback(
-    (id: string, updates: Partial<Product>) => {
-      update((prev) => ({
-        ...prev,
-        products: prev.products.map((p) =>
-          p.id === id ? { ...p, ...updates } : p
-        ),
-      }));
-    },
-    [update]
-  );
+  const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
+    setData((prev) => ({
+      ...prev,
+      products: prev.products.map((product) =>
+        product.id === id ? { ...product, ...updates } : product
+      ),
+    }));
+  }, []);
 
-  const deleteProduct = useCallback(
-    (id: string) => {
-      update((prev) => ({
-        ...prev,
-        products: prev.products.filter((p) => p.id !== id),
-      }));
-    },
-    [update]
-  );
+  const deleteProduct = useCallback((id: string) => {
+    setData((prev) => ({
+      ...prev,
+      products: prev.products.filter((product) => product.id !== id),
+    }));
+  }, []);
 
   const addInvoice = useCallback(
     (
       invoice: Omit<Invoice, "id" | "invoiceNumber" | "createdAt" | "updatedAt">
     ) => {
       const now = new Date().toISOString();
-      let newInvoice!: Invoice;
-      update((prev) => {
-        newInvoice = {
-          ...invoice,
-          payments: invoice.payments ?? [],
-          id: uuidv4(),
-          invoiceNumber: String(prev.nextInvoiceNumber),
-          createdAt: now,
-          updatedAt: now,
-        };
-        return {
-          ...prev,
-          invoices: [...prev.invoices, newInvoice],
-          nextInvoiceNumber: prev.nextInvoiceNumber + 1,
-        };
+      const prev = dataRef.current;
+      const created: Invoice = {
+        ...invoice,
+        payments: invoice.payments ?? [],
+        id: uuidv4(),
+        invoiceNumber: String(prev.nextInvoiceNumber),
+        createdAt: now,
+        updatedAt: now,
+      };
+      setData({
+        ...prev,
+        invoices: [...prev.invoices, created],
+        nextInvoiceNumber: prev.nextInvoiceNumber + 1,
       });
-      return newInvoice;
+      return created;
     },
-    [update]
+    []
   );
 
-  const updateInvoice = useCallback(
-    (id: string, updates: Partial<Invoice>) => {
-      update((prev) => ({
+  const updateInvoice = useCallback((id: string, updates: Partial<Invoice>) => {
+    setData((prev) => {
+      const existing = prev.invoices.find((invoice) => invoice.id === id);
+      if (!existing) return prev;
+
+      const merged: Invoice = {
+        ...existing,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+      const total = calculateTotals(merged.lineItems, merged.taxRate).total;
+      const paid = getAmountPaid(merged);
+      if (paid > total + PAYMENT_TOLERANCE) return prev;
+
+      return {
         ...prev,
-        invoices: prev.invoices.map((inv) =>
-          inv.id === id
-            ? { ...inv, ...updates, updatedAt: new Date().toISOString() }
-            : inv
+        invoices: prev.invoices.map((invoice) =>
+          invoice.id === id ? merged : invoice
         ),
-      }));
-    },
-    [update]
-  );
+      };
+    });
+  }, []);
 
-  const deleteInvoice = useCallback(
-    (id: string) => {
-      update((prev) => ({
-        ...prev,
-        invoices: prev.invoices.filter((inv) => inv.id !== id),
-      }));
-    },
-    [update]
-  );
+  const deleteInvoice = useCallback((id: string) => {
+    setData((prev) => ({
+      ...prev,
+      invoices: prev.invoices.filter((invoice) => invoice.id !== id),
+    }));
+  }, []);
 
   const addPayment = useCallback(
-    (
-      invoiceId: string,
-      amount: number,
-      date: string,
-      note = ""
-    ) => {
-      update((prev) => {
+    (invoiceId: string, amount: number, date: string, note = "") => {
+      setData((prev) => {
         const invoice = prev.invoices.find((inv) => inv.id === invoiceId);
         if (!invoice) return prev;
         const balance = getBalanceDue(invoice);
@@ -230,81 +241,74 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
         };
       });
     },
-    [update]
+    []
   );
 
-  const removePayment = useCallback(
-    (invoiceId: string, paymentId: string) => {
-      update((prev) => ({
+  const removePayment = useCallback((invoiceId: string, paymentId: string) => {
+    setData((prev) => ({
+      ...prev,
+      invoices: prev.invoices.map((invoice) =>
+        invoice.id === invoiceId
+          ? {
+              ...invoice,
+              payments: (invoice.payments ?? []).filter(
+                (payment) => payment.id !== paymentId
+              ),
+              updatedAt: new Date().toISOString(),
+            }
+          : invoice
+      ),
+    }));
+  }, []);
+
+  const payInvoiceInFull = useCallback((invoiceId: string) => {
+    setData((prev) => {
+      const invoice = prev.invoices.find((inv) => inv.id === invoiceId);
+      if (!invoice) return prev;
+      const balance = getBalanceDue(invoice);
+      if (balance <= 0) return prev;
+      const payment: Payment = {
+        id: uuidv4(),
+        amount: balance,
+        date: new Date().toISOString().split("T")[0],
+        note: "Paid in full",
+        createdAt: new Date().toISOString(),
+      };
+      return {
         ...prev,
         invoices: prev.invoices.map((inv) =>
           inv.id === invoiceId
             ? {
                 ...inv,
-                payments: (inv.payments ?? []).filter((p) => p.id !== paymentId),
+                payments: [...(inv.payments ?? []), payment],
                 updatedAt: new Date().toISOString(),
               }
             : inv
         ),
-      }));
-    },
-    [update]
-  );
+      };
+    });
+  }, []);
 
-  const payInvoiceInFull = useCallback(
-    (invoiceId: string) => {
-      update((prev) => {
-        const invoice = prev.invoices.find((inv) => inv.id === invoiceId);
-        if (!invoice) return prev;
-        const balance = getBalanceDue(invoice);
-        if (balance <= 0) return prev;
-        const payment: Payment = {
-          id: uuidv4(),
-          amount: balance,
-          date: new Date().toISOString().split("T")[0],
-          note: "Paid in full",
-          createdAt: new Date().toISOString(),
-        };
-        return {
-          ...prev,
-          invoices: prev.invoices.map((inv) =>
-            inv.id === invoiceId
-              ? {
-                  ...inv,
-                  payments: [...(inv.payments ?? []), payment],
-                  updatedAt: new Date().toISOString(),
-                }
-              : inv
-          ),
-        };
-      });
-    },
-    [update]
-  );
-
-  const updateSettings = useCallback(
-    (settings: Partial<CompanySettings>) => {
-      update((prev) => ({
-        ...prev,
-        settings: { ...prev.settings, ...settings },
-      }));
-    },
-    [update]
-  );
+  const updateSettings = useCallback((settings: Partial<CompanySettings>) => {
+    setData((prev) => ({
+      ...prev,
+      settings: { ...prev.settings, ...settings },
+    }));
+  }, []);
 
   const getCustomer = useCallback(
-    (id: string) => data.customers.find((c) => c.id === id),
-    [data.customers]
+    (id: string) => customersById.get(id),
+    [customersById]
   );
 
   const getProduct = useCallback(
-    (id: string) => data.products.find((p) => p.id === id),
-    [data.products]
+    (id: string) => productsById.get(id),
+    [productsById]
   );
 
   const getInvoice = useCallback(
-    (id: string) => data.invoices.find((inv) => inv.id === id),
-    [data.invoices]
+    (id: string) => invoicesById.get(id),
+    [invoicesById]
   );
 
   const getEffectiveStatus = useCallback(

@@ -1,4 +1,5 @@
 import type { AppData } from "./types";
+import { normalizeAppData } from "./normalize-data";
 
 const STORAGE_KEY = "invoice-app-data";
 
@@ -23,17 +24,7 @@ export function loadAppData(): AppData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultAppData;
     const parsed = JSON.parse(raw);
-    return {
-      ...defaultAppData,
-      ...parsed,
-      settings: { ...defaultAppData.settings, ...parsed.settings },
-      invoices: (parsed.invoices ?? []).map(
-        (inv: { payments?: unknown[] }) => ({
-          ...inv,
-          payments: inv.payments ?? [],
-        })
-      ),
-    };
+    return normalizeAppData(parsed, defaultAppData);
   } catch {
     return defaultAppData;
   }
@@ -41,5 +32,9 @@ export function loadAppData(): AppData {
 
 export function saveAppData(data: AppData): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("Failed to save invoice data:", error);
+  }
 }

@@ -9,11 +9,11 @@ import {
 
 export function MinimalTemplate(props: InvoiceTemplateProps) {
   const { invoice, customer, settings, status, totals, compact } = props;
-  const pad = compact ? "p-4" : "p-8";
+  const pad = compact ? "p-4" : "p-4 sm:p-8";
 
   return (
     <div className={`bg-white ${compact ? "text-xs" : "text-sm"}`}>
-      <div className={`flex justify-between border-b border-neutral-900 pb-4 ${pad}`}>
+      <div className={`flex flex-col gap-2 border-b border-neutral-900 pb-4 sm:flex-row sm:justify-between ${pad}`}>
         <p className={`font-medium tracking-[0.2em] ${compact ? "text-sm" : "text-lg"}`}>
           INVOICE
         </p>

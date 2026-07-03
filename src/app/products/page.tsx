@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useInvoice } from "@/context/InvoiceContext";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Card, CardHeader } from "@/components/Card";
+import { PageHeader } from "@/components/PageHeader";
+import { TableScroll } from "@/components/TableScroll";
 import { Button } from "@/components/Button";
 import { Input, Textarea } from "@/components/FormFields";
 import { SearchBar, SearchResultsHint } from "@/components/SearchBar";
@@ -21,11 +24,12 @@ export default function ProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
 
   if (!isLoaded) return <LoadingState />;
 
   const filteredProducts = data.products.filter((product) =>
-    matchesProduct(product, search)
+    matchesProduct(product, debouncedSearch)
   );
 
   const openCreate = () => {
@@ -68,20 +72,16 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Products & Services
-          </h1>
-          <p className="mt-1 text-slate-500">
-            Manage items you bill for on invoices
-          </p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          Add Product
-        </Button>
-      </div>
+      <PageHeader
+        title="Products & Services"
+        description="Manage items you bill for on invoices"
+        action={
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            Add Product
+          </Button>
+        }
+      />
 
       {showForm && (
         <Card className="mb-6">
@@ -162,32 +162,33 @@ export default function ProductsPage() {
           description="Try a different product name, description, or price."
         />
       ) : (
-        <Card className="!p-0 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
-                <th className="px-6 py-3 font-medium">Name</th>
-                <th className="px-6 py-3 font-medium">Description</th>
-                <th className="px-6 py-3 font-medium">Price</th>
-                <th className="px-6 py-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.map((product) => (
-                <tr
-                  key={product.id}
-                  className="border-b border-slate-100 last:border-0"
-                >
-                  <td className="px-6 py-4 font-medium text-slate-900">
-                    {product.name}
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">
-                    {product.description}
-                  </td>
-                  <td className="px-6 py-4 font-medium">
-                    {formatCurrency(product.price)}
-                  </td>
-                  <td className="px-6 py-4 text-right">
+        <Card className="!p-0">
+          <TableScroll>
+            <table className="w-full min-w-[520px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
+                  <th className="px-3 py-3 font-medium sm:px-6">Name</th>
+                  <th className="px-3 py-3 font-medium sm:px-6">Description</th>
+                  <th className="px-3 py-3 font-medium sm:px-6">Price</th>
+                  <th className="px-3 py-3 text-right font-medium sm:px-6">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProducts.map((product) => (
+                  <tr
+                    key={product.id}
+                    className="border-b border-slate-100 last:border-0"
+                  >
+                    <td className="px-3 py-4 font-medium text-slate-900 sm:px-6">
+                      {product.name}
+                    </td>
+                    <td className="px-3 py-4 text-slate-600 sm:px-6">
+                      {product.description}
+                    </td>
+                    <td className="px-3 py-4 font-medium sm:px-6">
+                      {formatCurrency(product.price)}
+                    </td>
+                    <td className="px-3 py-4 text-right sm:px-6">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
@@ -209,6 +210,7 @@ export default function ProductsPage() {
               ))}
             </tbody>
           </table>
+          </TableScroll>
         </Card>
       )}
     </div>

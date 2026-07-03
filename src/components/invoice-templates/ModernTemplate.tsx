@@ -10,12 +10,12 @@ import {
 
 export function ModernTemplate(props: InvoiceTemplateProps) {
   const { invoice, customer, settings, status, totals, compact } = props;
-  const pad = compact ? "p-4" : "p-8";
+  const pad = compact ? "p-4" : "p-4 sm:p-8";
 
   return (
     <div className={`overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-indigo-100 ${compact ? "text-xs" : ""}`}>
       <div className={`bg-gradient-to-r from-indigo-600 to-violet-500 ${pad} text-white`}>
-        <div className="flex justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
           <div>
             <p className={`font-bold ${compact ? "text-lg" : "text-2xl"}`}>{settings.name}</p>
             <p className="mt-1 text-sm text-indigo-100">Invoice #{invoice.invoiceNumber}</p>

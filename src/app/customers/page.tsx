@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useInvoice } from "@/context/InvoiceContext";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { Card, CardHeader } from "@/components/Card";
+import { PageHeader } from "@/components/PageHeader";
+import { TableScroll } from "@/components/TableScroll";
 import { Button } from "@/components/Button";
 import { Input, Textarea } from "@/components/FormFields";
 import { SearchBar, SearchResultsHint } from "@/components/SearchBar";
@@ -20,11 +23,12 @@ export default function CustomersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
 
   if (!isLoaded) return <LoadingState />;
 
   const filteredCustomers = data.customers.filter((customer) =>
-    matchesCustomer(customer, search)
+    matchesCustomer(customer, debouncedSearch)
   );
 
   const openCreate = () => {
@@ -63,16 +67,16 @@ export default function CustomersPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Customers</h1>
-          <p className="mt-1 text-slate-500">Manage your customer contacts</p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          Add Customer
-        </Button>
-      </div>
+      <PageHeader
+        title="Customers"
+        description="Manage your customer contacts"
+        action={
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            Add Customer
+          </Button>
+        }
+      />
 
       {showForm && (
         <Card className="mb-6">
@@ -151,30 +155,31 @@ export default function CustomersPage() {
           description="Try a different name, phone number, email, or address."
         />
       ) : (
-        <Card className="!p-0 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
-                <th className="px-6 py-3 font-medium">Name</th>
-                <th className="px-6 py-3 font-medium">Email</th>
-                <th className="px-6 py-3 font-medium">Phone</th>
-                <th className="px-6 py-3 font-medium">Address</th>
-                <th className="px-6 py-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCustomers.map((customer) => (
-                <tr
-                  key={customer.id}
-                  className="border-b border-slate-100 last:border-0"
-                >
-                  <td className="px-6 py-4 font-medium text-slate-900">
-                    {customer.name}
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">{customer.email}</td>
-                  <td className="px-6 py-4 text-slate-600">{customer.phone}</td>
-                  <td className="px-6 py-4 text-slate-600">{customer.address}</td>
-                  <td className="px-6 py-4 text-right">
+        <Card className="!p-0">
+          <TableScroll>
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
+                  <th className="px-3 py-3 font-medium sm:px-6">Name</th>
+                  <th className="px-3 py-3 font-medium sm:px-6">Email</th>
+                  <th className="px-3 py-3 font-medium sm:px-6">Phone</th>
+                  <th className="px-3 py-3 font-medium sm:px-6">Address</th>
+                  <th className="px-3 py-3 text-right font-medium sm:px-6">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCustomers.map((customer) => (
+                  <tr
+                    key={customer.id}
+                    className="border-b border-slate-100 last:border-0"
+                  >
+                    <td className="px-3 py-4 font-medium text-slate-900 sm:px-6">
+                      {customer.name}
+                    </td>
+                    <td className="px-3 py-4 text-slate-600 sm:px-6">{customer.email}</td>
+                    <td className="px-3 py-4 text-slate-600 sm:px-6">{customer.phone}</td>
+                    <td className="px-3 py-4 text-slate-600 sm:px-6">{customer.address}</td>
+                    <td className="px-3 py-4 text-right sm:px-6">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
@@ -196,6 +201,7 @@ export default function CustomersPage() {
               ))}
             </tbody>
           </table>
+          </TableScroll>
         </Card>
       )}
     </div>

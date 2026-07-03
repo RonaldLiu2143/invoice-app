@@ -8,38 +8,36 @@ function normalizePhone(value: string): string {
   return value.replace(/\D/g, "");
 }
 
-function matchesFields(
+function matchesTextFields(
   query: string,
   fields: (string | number | undefined | null)[]
 ): boolean {
   if (!query.trim()) return true;
-
   const q = normalizeSearchText(query);
-  const qPhone = normalizePhone(query);
-
   return fields.some((field) => {
     if (field === undefined || field === null || field === "") return false;
-    const text = normalizeSearchText(String(field));
-    if (text.includes(q)) return true;
-    if (qPhone.length >= 3) {
-      const fieldPhone = normalizePhone(text);
-      if (fieldPhone.includes(qPhone)) return true;
-    }
-    return false;
+    return normalizeSearchText(String(field)).includes(q);
   });
 }
 
+function matchesPhoneField(query: string, phone: string | undefined | null): boolean {
+  if (!query.trim() || !phone) return false;
+  const qPhone = normalizePhone(query);
+  if (qPhone.length < 3) return false;
+  return normalizePhone(phone).includes(qPhone);
+}
+
 export function matchesCustomer(customer: Customer, query: string): boolean {
-  return matchesFields(query, [
-    customer.name,
-    customer.email,
-    customer.phone,
-    customer.address,
-  ]);
+  if (!query.trim()) return true;
+  return (
+    matchesTextFields(query, [customer.name, customer.email, customer.address]) ||
+    matchesPhoneField(query, customer.phone)
+  );
 }
 
 export function matchesProduct(product: Product, query: string): boolean {
-  return matchesFields(query, [
+  if (!query.trim()) return true;
+  return matchesTextFields(query, [
     product.name,
     product.description,
     product.price,
@@ -52,9 +50,10 @@ export function matchesInvoice(
   customer: Customer | undefined,
   query: string
 ): boolean {
+  if (!query.trim()) return true;
   const lineText = invoice.lineItems.map((item) => item.description).join(" ");
   return (
-    matchesFields(query, [invoice.invoiceNumber, invoice.notes, lineText]) ||
+    matchesTextFields(query, [invoice.invoiceNumber, invoice.notes, lineText]) ||
     (customer ? matchesCustomer(customer, query) : false)
   );
 }

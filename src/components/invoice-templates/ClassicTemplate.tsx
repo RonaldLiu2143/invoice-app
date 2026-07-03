@@ -10,11 +10,11 @@ import {
 
 export function ClassicTemplate(props: InvoiceTemplateProps) {
   const { invoice, customer, settings, status, totals, compact } = props;
-  const pad = compact ? "p-4" : "p-8";
+  const pad = compact ? "p-4" : "p-4 sm:p-8";
 
   return (
     <div className={`bg-white ${compact ? "text-xs" : ""}`}>
-      <div className={`flex justify-between gap-4 border-b-4 border-blue-800 ${pad}`}>
+      <div className={`flex flex-col gap-4 border-b-4 border-blue-800 sm:flex-row sm:justify-between ${pad}`}>
         <div>
           <h2 className={`font-bold text-blue-800 ${compact ? "text-lg" : "text-3xl"}`}>
             INVOICE

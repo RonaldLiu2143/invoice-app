@@ -11,12 +11,12 @@ import {
 
 export function BoldTemplate(props: InvoiceTemplateProps) {
   const { invoice, customer, settings, status, totals, compact } = props;
-  const pad = compact ? "p-4" : "p-8";
+  const pad = compact ? "p-4" : "p-4 sm:p-8";
 
   return (
     <div className={`bg-white ${compact ? "text-xs" : ""}`}>
       <div className={`bg-slate-900 ${pad} text-white`}>
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className={`font-black tracking-tight ${compact ? "text-xl" : "text-4xl"}`}>
               INVOICE

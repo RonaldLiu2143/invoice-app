@@ -12,7 +12,9 @@ import {
   calculateTotals,
   formatCurrency,
   formatDate,
+  getAmountPaid,
   lineItemTotal,
+  PAYMENT_TOLERANCE,
   todayISO,
 } from "@/lib/calculations";
 import type { Invoice, InvoiceLineItem, InvoiceTemplateId } from "@/lib/types";
@@ -88,6 +90,17 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
     if (validItems.length === 0) {
       alert("Add at least one line item.");
       return;
+    }
+
+    const newTotal = calculateTotals(validItems, taxRate).total;
+    if (invoice) {
+      const amountPaid = getAmountPaid(invoice);
+      if (amountPaid > newTotal + PAYMENT_TOLERANCE) {
+        alert(
+          `Invoice total cannot be less than amount already paid (${formatCurrency(amountPaid)}).`
+        );
+        return;
+      }
     }
 
     const payload = {
@@ -177,7 +190,7 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
                 onChange={(e) => {
                   if (e.target.value) addProductToLine(e.target.value);
                 }}
-                className="!w-48"
+                className="!w-full sm:!w-48"
               >
                 <option value="">+ Add from catalog</option>
                 {data.products.map((p) => (
@@ -203,13 +216,16 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
               className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-[1fr_80px_120px_100px_40px] sm:border-0 sm:p-0"
             >
               <Input
+                label="Description"
                 placeholder="Description"
                 value={item.description}
                 onChange={(e) =>
                   updateLineItem(item.id, { description: e.target.value })
                 }
+                className="sm:[&>label]:hidden"
               />
               <Input
+                label="Qty"
                 type="number"
                 min="1"
                 value={item.quantity}
@@ -218,8 +234,10 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
                     quantity: parseInt(e.target.value) || 0,
                   })
                 }
+                className="sm:[&>label]:hidden"
               />
               <Input
+                label="Unit Price"
                 type="number"
                 min="0"
                 step="0.01"
@@ -229,19 +247,28 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
                     unitPrice: parseFloat(e.target.value) || 0,
                   })
                 }
+                className="sm:[&>label]:hidden"
               />
-              <div className="flex items-center text-sm font-medium text-slate-700">
-                {formatCurrency(lineItemTotal(item))}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-slate-700 sm:hidden">
+                  Amount
+                </span>
+                <div className="flex h-[38px] items-center text-sm font-medium text-slate-700">
+                  {formatCurrency(lineItemTotal(item))}
+                </div>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                className="!p-2 text-red-600"
-                onClick={() => removeLineItem(item.id)}
-                disabled={lineItems.length <= 1}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="flex items-end sm:items-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="!p-2 text-red-600"
+                  onClick={() => removeLineItem(item.id)}
+                  disabled={lineItems.length <= 1}
+                  aria-label="Remove line item"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
           <Button type="button" variant="secondary" onClick={addLineItem}>
@@ -250,8 +277,8 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
           </Button>
         </div>
 
-        <div className="mt-6 flex justify-end">
-          <div className="w-64 space-y-2 text-sm">
+        <div className="mt-6 flex justify-stretch sm:justify-end">
+          <div className="w-full space-y-2 text-sm sm:w-64">
             <div className="flex justify-between text-slate-600">
               <span>Subtotal</span>
               <span>{formatCurrency(totals.subtotal)}</span>
@@ -278,7 +305,7 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
         />
       </Card>
 
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <Button type="submit">
           {invoice ? "Save Changes" : "Create Invoice"}
         </Button>
