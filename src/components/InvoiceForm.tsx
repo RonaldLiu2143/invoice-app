@@ -104,6 +104,7 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
       dueDate,
       notes,
       templateId,
+      payments: invoice?.payments ?? [],
     };
 
     if (invoice) {

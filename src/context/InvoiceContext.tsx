@@ -16,9 +16,10 @@ import type {
   Invoice,
   InvoiceLineItem,
   InvoiceStatus,
+  Payment,
   Product,
 } from "@/lib/types";
-import { resolveInvoiceStatus } from "@/lib/calculations";
+import { resolveInvoiceStatus, getBalanceDue } from "@/lib/calculations";
 import { defaultAppData, loadAppData, saveAppData } from "@/lib/storage";
 
 interface InvoiceContextValue {
@@ -35,6 +36,14 @@ interface InvoiceContextValue {
   ) => Invoice;
   updateInvoice: (id: string, updates: Partial<Invoice>) => void;
   deleteInvoice: (id: string) => void;
+  addPayment: (
+    invoiceId: string,
+    amount: number,
+    date: string,
+    note?: string
+  ) => void;
+  removePayment: (invoiceId: string, paymentId: string) => void;
+  payInvoiceInFull: (invoiceId: string) => void;
   updateSettings: (settings: Partial<CompanySettings>) => void;
   getCustomer: (id: string) => Customer | undefined;
   getProduct: (id: string) => Product | undefined;
@@ -146,6 +155,7 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
       update((prev) => {
         newInvoice = {
           ...invoice,
+          payments: invoice.payments ?? [],
           id: uuidv4(),
           invoiceNumber: String(prev.nextInvoiceNumber),
           createdAt: now,
@@ -182,6 +192,85 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
         ...prev,
         invoices: prev.invoices.filter((inv) => inv.id !== id),
       }));
+    },
+    [update]
+  );
+
+  const addPayment = useCallback(
+    (
+      invoiceId: string,
+      amount: number,
+      date: string,
+      note = ""
+    ) => {
+      const payment: Payment = {
+        id: uuidv4(),
+        amount,
+        date,
+        note,
+        createdAt: new Date().toISOString(),
+      };
+      update((prev) => ({
+        ...prev,
+        invoices: prev.invoices.map((inv) =>
+          inv.id === invoiceId
+            ? {
+                ...inv,
+                payments: [...(inv.payments ?? []), payment],
+                updatedAt: new Date().toISOString(),
+              }
+            : inv
+        ),
+      }));
+    },
+    [update]
+  );
+
+  const removePayment = useCallback(
+    (invoiceId: string, paymentId: string) => {
+      update((prev) => ({
+        ...prev,
+        invoices: prev.invoices.map((inv) =>
+          inv.id === invoiceId
+            ? {
+                ...inv,
+                payments: (inv.payments ?? []).filter((p) => p.id !== paymentId),
+                updatedAt: new Date().toISOString(),
+              }
+            : inv
+        ),
+      }));
+    },
+    [update]
+  );
+
+  const payInvoiceInFull = useCallback(
+    (invoiceId: string) => {
+      update((prev) => {
+        const invoice = prev.invoices.find((inv) => inv.id === invoiceId);
+        if (!invoice) return prev;
+        const balance = getBalanceDue(invoice);
+        if (balance <= 0) return prev;
+        const payment: Payment = {
+          id: uuidv4(),
+          amount: balance,
+          date: new Date().toISOString().split("T")[0],
+          note: "Paid in full",
+          createdAt: new Date().toISOString(),
+        };
+        return {
+          ...prev,
+          invoices: prev.invoices.map((inv) =>
+            inv.id === invoiceId
+              ? {
+                  ...inv,
+                  payments: [...(inv.payments ?? []), payment],
+                  updatedAt: new Date().toISOString(),
+                }
+              : inv
+          ),
+        };
+      });
     },
     [update]
   );
@@ -230,6 +319,9 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
         addInvoice,
         updateInvoice,
         deleteInvoice,
+        addPayment,
+        removePayment,
+        payInvoiceInFull,
         updateSettings,
         getCustomer,
         getProduct,

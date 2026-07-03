@@ -6,6 +6,9 @@ import {
   formatCurrency,
   formatDate,
   lineItemTotal,
+  getAmountPaid,
+  getBalanceDue,
+  resolveInvoiceStatus,
 } from "./calculations";
 import { getTemplateMeta, resolveTemplateId } from "./templates";
 
@@ -42,6 +45,9 @@ function drawLineItems(
 
 function drawTotals(doc: Doc, ctx: PdfContext, startY: number, accent: [number, number, number]) {
   const totals = calculateTotals(ctx.invoice.lineItems, ctx.invoice.taxRate);
+  const amountPaid = getAmountPaid(ctx.invoice);
+  const balanceDue = getBalanceDue(ctx.invoice);
+  const status = resolveInvoiceStatus(ctx.invoice);
   let y = startY + 10;
   doc.setFontSize(10);
   doc.setTextColor(60, 60, 60);
@@ -50,12 +56,25 @@ function drawTotals(doc: Doc, ctx: PdfContext, startY: number, accent: [number, 
   doc.setFontSize(12);
   doc.setTextColor(...accent);
   doc.text(`Total: ${formatCurrency(totals.total)}`, 140, y + 14);
+  if (amountPaid > 0) {
+    y += 6;
+    doc.setFontSize(10);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Paid: ${formatCurrency(amountPaid)}`, 140, y + 14);
+    doc.setFontSize(12);
+    doc.setTextColor(...accent);
+    doc.text(`Balance due: ${formatCurrency(balanceDue)}`, 140, y + 20);
+    y += 6;
+  }
   if (ctx.invoice.notes) {
     doc.setFontSize(10);
     doc.setTextColor(60, 60, 60);
-    doc.text("Notes:", 14, y + 10);
-    doc.text(doc.splitTextToSize(ctx.invoice.notes, 100), 14, y + 16);
+    doc.text("Notes:", 14, y + 20);
+    doc.text(doc.splitTextToSize(ctx.invoice.notes, 100), 14, y + 26);
   }
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Status: ${status}`, 14, y + (ctx.invoice.notes ? 36 : 20));
 }
 
 function drawAddresses(doc: Doc, ctx: PdfContext, startY: number) {

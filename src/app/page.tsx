@@ -8,9 +8,10 @@ import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { LoadingState } from "@/components/EmptyState";
 import {
-  calculateTotals,
   formatCurrency,
   formatDate,
+  getAmountPaid,
+  getBalanceDue,
 } from "@/lib/calculations";
 
 export default function DashboardPage() {
@@ -23,19 +24,17 @@ export default function DashboardPage() {
     effectiveStatus: getEffectiveStatus(inv),
   }));
 
-  const totalRevenue = invoicesWithStatus
-    .filter((inv) => inv.effectiveStatus === "paid")
-    .reduce(
-      (sum, inv) => sum + calculateTotals(inv.lineItems, inv.taxRate).total,
-      0
-    );
+  const totalRevenue = data.invoices.reduce(
+    (sum, inv) => sum + getAmountPaid(inv),
+    0
+  );
 
   const unpaidInvoices = invoicesWithStatus.filter(
-    (inv) => inv.effectiveStatus !== "paid"
+    (inv) => getBalanceDue(inv) > 0
   );
 
   const unpaidTotal = unpaidInvoices.reduce(
-    (sum, inv) => sum + calculateTotals(inv.lineItems, inv.taxRate).total,
+    (sum, inv) => sum + getBalanceDue(inv),
     0
   );
 
@@ -131,14 +130,13 @@ export default function DashboardPage() {
                   <th className="pb-3 font-medium">Invoice</th>
                   <th className="pb-3 font-medium">Customer</th>
                   <th className="pb-3 font-medium">Date</th>
-                  <th className="pb-3 font-medium">Amount</th>
+                  <th className="pb-3 font-medium">Balance</th>
                   <th className="pb-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {recentInvoices.map((inv) => {
                   const customer = getCustomer(inv.customerId);
-                  const totals = calculateTotals(inv.lineItems, inv.taxRate);
                   return (
                     <tr
                       key={inv.id}
@@ -159,7 +157,7 @@ export default function DashboardPage() {
                         {formatDate(inv.issueDate)}
                       </td>
                       <td className="py-3 font-medium">
-                        {formatCurrency(totals.total)}
+                        {formatCurrency(getBalanceDue(inv))}
                       </td>
                       <td className="py-3">
                         <StatusBadge status={getEffectiveStatus(inv)} />

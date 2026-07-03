@@ -27,6 +27,12 @@ export function loadAppData(): AppData {
       ...defaultAppData,
       ...parsed,
       settings: { ...defaultAppData.settings, ...parsed.settings },
+      invoices: (parsed.invoices ?? []).map(
+        (inv: { payments?: unknown[] }) => ({
+          ...inv,
+          payments: inv.payments ?? [],
+        })
+      ),
     };
   } catch {
     return defaultAppData;

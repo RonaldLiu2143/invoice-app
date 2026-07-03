@@ -1,4 +1,12 @@
-export type InvoiceStatus = "paid" | "unpaid" | "overdue";
+export type InvoiceStatus = "paid" | "unpaid" | "overdue" | "partial";
+
+export interface Payment {
+  id: string;
+  amount: number;
+  date: string;
+  note: string;
+  createdAt: string;
+}
 
 export type InvoiceTemplateId =
   | "classic"
@@ -43,6 +51,7 @@ export interface Invoice {
   dueDate: string;
   notes: string;
   templateId?: InvoiceTemplateId;
+  payments: Payment[];
   createdAt: string;
   updatedAt: string;
 }

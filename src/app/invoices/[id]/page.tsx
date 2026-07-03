@@ -25,6 +25,7 @@ import { downloadInvoicePDF } from "@/lib/pdf";
 import { getMailtoLink, shareInvoice } from "@/lib/share";
 import { resolveTemplateId, INVOICE_TEMPLATES } from "@/lib/templates";
 import { InvoicePreview } from "@/components/invoice-templates";
+import { PaymentPanel } from "@/components/PaymentPanel";
 import { Select } from "@/components/FormFields";
 import type { InvoiceTemplateId } from "@/lib/types";
 
@@ -43,6 +44,9 @@ export default function InvoiceDetailPage({
     getEffectiveStatus,
     updateInvoice,
     deleteInvoice,
+    addPayment,
+    removePayment,
+    payInvoiceInFull,
   } = useInvoice();
   const [editing, setEditing] = useState(false);
   const [shareMsg, setShareMsg] = useState("");
@@ -66,6 +70,14 @@ export default function InvoiceDetailPage({
   const totals = calculateTotals(invoice.lineItems, invoice.taxRate);
 
   const handleStatusChange = (status: "paid" | "unpaid" | "overdue") => {
+    if (status === "paid") {
+      payInvoiceInFull(invoice.id);
+      return;
+    }
+    if (status === "unpaid") {
+      updateInvoice(invoice.id, { payments: [], status: "unpaid" });
+      return;
+    }
     updateInvoice(invoice.id, { status });
   };
 
@@ -170,7 +182,7 @@ export default function InvoiceDetailPage({
         {(["paid", "unpaid", "overdue"] as const).map((s) => (
           <Button
             key={s}
-            variant={invoice.status === s ? "primary" : "secondary"}
+            variant={effectiveStatus === s ? "primary" : "secondary"}
             className="capitalize"
             onClick={() => handleStatusChange(s)}
           >
@@ -178,6 +190,17 @@ export default function InvoiceDetailPage({
           </Button>
         ))}
       </div>
+
+      <PaymentPanel
+        invoice={invoice}
+        onAddPayment={(amount, date, note) =>
+          addPayment(invoice.id, amount, date, note)
+        }
+        onRemovePayment={(paymentId) =>
+          removePayment(invoice.id, paymentId)
+        }
+        onPayInFull={() => payInvoiceInFull(invoice.id)}
+      />
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <Select

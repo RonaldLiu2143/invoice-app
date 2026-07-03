@@ -1,5 +1,5 @@
 import type { Customer, Invoice, CompanySettings } from "./types";
-import { calculateTotals, formatCurrency, formatDate } from "./calculations";
+import { calculateTotals, formatCurrency, formatDate, getAmountPaid, getBalanceDue, resolveInvoiceStatus } from "./calculations";
 
 export function buildInvoiceEmailBody(
   invoice: Invoice,
@@ -7,6 +7,9 @@ export function buildInvoiceEmailBody(
   settings: CompanySettings
 ): string {
   const totals = calculateTotals(invoice.lineItems, invoice.taxRate);
+  const amountPaid = getAmountPaid(invoice);
+  const balanceDue = getBalanceDue(invoice);
+  const status = resolveInvoiceStatus(invoice);
   const lines = invoice.lineItems
     .map(
       (item) =>
@@ -21,7 +24,7 @@ export function buildInvoiceEmailBody(
     "",
     `Issue Date: ${formatDate(invoice.issueDate)}`,
     `Due Date: ${formatDate(invoice.dueDate)}`,
-    `Status: ${invoice.status}`,
+    `Status: ${status}`,
     "",
     "Items:",
     lines,
@@ -29,6 +32,8 @@ export function buildInvoiceEmailBody(
     `Subtotal: ${formatCurrency(totals.subtotal)}`,
     `Tax (${invoice.taxRate}%): ${formatCurrency(totals.tax)}`,
     `Total: ${formatCurrency(totals.total)}`,
+    amountPaid > 0 ? `Paid: ${formatCurrency(amountPaid)}` : "",
+    amountPaid > 0 ? `Balance due: ${formatCurrency(balanceDue)}` : "",
     "",
     invoice.notes ? `Notes: ${invoice.notes}` : "",
     "",

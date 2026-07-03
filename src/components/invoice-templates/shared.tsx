@@ -3,6 +3,8 @@ import {
   formatCurrency,
   formatDate,
   lineItemTotal,
+  getAmountPaid,
+  getBalanceDue,
 } from "@/lib/calculations";
 import type { InvoiceTemplateProps } from "./types";
 
@@ -55,6 +57,9 @@ export function TotalsBlock({
   totalClass?: string;
 }) {
   const width = compact ? "w-full" : "w-56";
+  const amountPaid = getAmountPaid(invoice);
+  const balanceDue = getBalanceDue(invoice);
+
   return (
     <div className={`ml-auto ${width} space-y-1 text-sm`}>
       <div className={`flex justify-between ${labelClass ?? "text-slate-600"}`}>
@@ -71,6 +76,20 @@ export function TotalsBlock({
         <span>Total</span>
         <span>{formatCurrency(totals.total)}</span>
       </div>
+      {amountPaid > 0 && (
+        <>
+          <div className={`flex justify-between ${labelClass ?? "text-slate-600"}`}>
+            <span>Paid</span>
+            <span>-{formatCurrency(amountPaid)}</span>
+          </div>
+          <div
+            className={`flex justify-between border-t pt-2 font-bold ${totalClass ?? "text-slate-900"}`}
+          >
+            <span>Balance due</span>
+            <span>{formatCurrency(balanceDue)}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }

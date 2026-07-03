@@ -13,6 +13,7 @@ import {
   calculateTotals,
   formatCurrency,
   formatDate,
+  getBalanceDue,
 } from "@/lib/calculations";
 
 export default function InvoicesPage() {
@@ -76,6 +77,7 @@ export default function InvoicesPage() {
             <option value="all">All statuses</option>
             <option value="paid">Paid</option>
             <option value="unpaid">Unpaid</option>
+            <option value="partial">Partial</option>
             <option value="overdue">Overdue</option>
           </select>
         </div>
@@ -109,7 +111,8 @@ export default function InvoicesPage() {
                 <th className="px-6 py-3 font-medium">Customer</th>
                 <th className="px-6 py-3 font-medium">Issue Date</th>
                 <th className="px-6 py-3 font-medium">Due Date</th>
-                <th className="px-6 py-3 font-medium">Amount</th>
+                <th className="px-6 py-3 font-medium">Total</th>
+                <th className="px-6 py-3 font-medium">Balance</th>
                 <th className="px-6 py-3 font-medium">Status</th>
               </tr>
             </thead>
@@ -141,6 +144,9 @@ export default function InvoicesPage() {
                     </td>
                     <td className="px-6 py-4 font-medium">
                       {formatCurrency(totals.total)}
+                    </td>
+                    <td className="px-6 py-4 font-medium">
+                      {formatCurrency(getBalanceDue(inv))}
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={getEffectiveStatus(inv)} />
