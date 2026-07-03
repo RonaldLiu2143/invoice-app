@@ -155,10 +155,3 @@ export function InvoiceMeta({
     </div>
   );
 }
-
-export function useInvoiceTemplateData(props: InvoiceTemplateProps) {
-  return {
-    ...props,
-    totals: props.totals ?? calculateTotals(props.invoice.lineItems, props.invoice.taxRate),
-  };
-}

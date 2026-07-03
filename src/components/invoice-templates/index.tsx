@@ -29,5 +29,3 @@ export function InvoicePreview({
     </div>
   );
 }
-
-export { ClassicTemplate, ModernTemplate, BoldTemplate, ElegantTemplate, MinimalTemplate };

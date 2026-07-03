@@ -1,15 +1,14 @@
 import type { Customer, Invoice, Product } from "./types";
-import { formatCurrency } from "./calculations";
 
-export function normalizeSearchText(value: string): string {
+function normalizeSearchText(value: string): string {
   return value.toLowerCase().trim();
 }
 
-export function normalizePhone(value: string): string {
+function normalizePhone(value: string): string {
   return value.replace(/\D/g, "");
 }
 
-export function matchesFields(
+function matchesFields(
   query: string,
   fields: (string | number | undefined | null)[]
 ): boolean {
@@ -44,7 +43,7 @@ export function matchesProduct(product: Product, query: string): boolean {
     product.name,
     product.description,
     product.price,
-    formatCurrency(product.price),
+    String(product.price),
   ]);
 }
 
@@ -54,13 +53,8 @@ export function matchesInvoice(
   query: string
 ): boolean {
   const lineText = invoice.lineItems.map((item) => item.description).join(" ");
-  return matchesFields(query, [
-    invoice.invoiceNumber,
-    invoice.notes,
-    customer?.name,
-    customer?.email,
-    customer?.phone,
-    customer?.address,
-    lineText,
-  ]);
+  return (
+    matchesFields(query, [invoice.invoiceNumber, invoice.notes, lineText]) ||
+    (customer ? matchesCustomer(customer, query) : false)
+  );
 }

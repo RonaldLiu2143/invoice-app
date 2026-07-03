@@ -104,7 +104,7 @@ function pdfClassic(doc: Doc, ctx: PdfContext) {
   doc.text(`Invoice #: ${ctx.invoice.invoiceNumber}`, 140, 32);
   doc.text(`Issue Date: ${formatDate(ctx.invoice.issueDate)}`, 140, 37);
   doc.text(`Due Date: ${formatDate(ctx.invoice.dueDate)}`, 140, 42);
-  doc.text(`Status: ${ctx.invoice.status.toUpperCase()}`, 140, 47);
+  doc.text(`Status: ${resolveInvoiceStatus(ctx.invoice).toUpperCase()}`, 140, 47);
   drawAddresses(doc, ctx, 60);
   const finalY = drawLineItems(doc, ctx, 92, theme.primary);
   drawTotals(doc, ctx, finalY, theme.primary);
@@ -145,7 +145,7 @@ function pdfBold(doc: Doc, ctx: PdfContext) {
   doc.setFontSize(10);
   doc.text(ctx.settings.name, 14, 48);
   doc.text(ctx.customer.name, 110, 48);
-  doc.text(`Status: ${ctx.invoice.status}`, 14, 58);
+  doc.text(`Status: ${resolveInvoiceStatus(ctx.invoice)}`, 14, 58);
   const finalY = drawLineItems(doc, ctx, 68, theme.primary);
   drawTotals(doc, ctx, finalY, theme.primary);
 }

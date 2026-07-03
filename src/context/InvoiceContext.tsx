@@ -19,7 +19,7 @@ import type {
   Payment,
   Product,
 } from "@/lib/types";
-import { resolveInvoiceStatus, getBalanceDue } from "@/lib/calculations";
+import { resolveInvoiceStatus, getBalanceDue, PAYMENT_TOLERANCE } from "@/lib/calculations";
 import { defaultAppData, loadAppData, saveAppData } from "@/lib/storage";
 
 interface InvoiceContextValue {
@@ -203,25 +203,32 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
       date: string,
       note = ""
     ) => {
-      const payment: Payment = {
-        id: uuidv4(),
-        amount,
-        date,
-        note,
-        createdAt: new Date().toISOString(),
-      };
-      update((prev) => ({
-        ...prev,
-        invoices: prev.invoices.map((inv) =>
-          inv.id === invoiceId
-            ? {
-                ...inv,
-                payments: [...(inv.payments ?? []), payment],
-                updatedAt: new Date().toISOString(),
-              }
-            : inv
-        ),
-      }));
+      update((prev) => {
+        const invoice = prev.invoices.find((inv) => inv.id === invoiceId);
+        if (!invoice) return prev;
+        const balance = getBalanceDue(invoice);
+        if (amount <= 0 || amount > balance + PAYMENT_TOLERANCE) return prev;
+
+        const payment: Payment = {
+          id: uuidv4(),
+          amount,
+          date,
+          note,
+          createdAt: new Date().toISOString(),
+        };
+        return {
+          ...prev,
+          invoices: prev.invoices.map((inv) =>
+            inv.id === invoiceId
+              ? {
+                  ...inv,
+                  payments: [...(inv.payments ?? []), payment],
+                  updatedAt: new Date().toISOString(),
+                }
+              : inv
+          ),
+        };
+      });
     },
     [update]
   );

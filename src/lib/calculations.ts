@@ -1,6 +1,16 @@
 import type { Invoice, InvoiceLineItem, InvoiceStatus, InvoiceTotals } from "./types";
 
 const PAID_TOLERANCE = 0.005;
+export const PAYMENT_TOLERANCE = PAID_TOLERANCE;
+
+export function todayISO(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
 
 export function lineItemTotal(item: InvoiceLineItem): number {
   return item.quantity * item.unitPrice;
@@ -39,11 +49,10 @@ export function resolveInvoiceStatus(invoice: Invoice): InvoiceStatus {
 
   if (balance <= PAID_TOLERANCE) return "paid";
   if (paid > PAID_TOLERANCE) return "partial";
+  if (invoice.status === "overdue") return "overdue";
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(invoice.dueDate);
-  due.setHours(0, 0, 0, 0);
+  const today = parseLocalDate(todayISO());
+  const due = parseLocalDate(invoice.dueDate);
   if (due < today) return "overdue";
   return "unpaid";
 }
@@ -56,7 +65,7 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+  return parseLocalDate(dateStr).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",

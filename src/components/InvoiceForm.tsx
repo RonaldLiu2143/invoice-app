@@ -11,14 +11,12 @@ import { Input, Select, Textarea } from "@/components/FormFields";
 import {
   calculateTotals,
   formatCurrency,
+  formatDate,
   lineItemTotal,
+  todayISO,
 } from "@/lib/calculations";
 import type { Invoice, InvoiceLineItem, InvoiceTemplateId } from "@/lib/types";
 import { INVOICE_TEMPLATES } from "@/lib/templates";
-
-function todayISO() {
-  return new Date().toISOString().split("T")[0];
-}
 
 function dueDateISO(days = 30) {
   const d = new Date();
@@ -36,9 +34,6 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
   );
   const [taxRate, setTaxRate] = useState(
     invoice?.taxRate ?? data.settings.taxRate
-  );
-  const [status, setStatus] = useState<Invoice["status"]>(
-    invoice?.status ?? "unpaid"
   );
   const [issueDate, setIssueDate] = useState(
     invoice?.issueDate ?? todayISO()
@@ -99,7 +94,7 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
       customerId,
       lineItems: validItems,
       taxRate,
-      status,
+      status: invoice?.status ?? "unpaid",
       issueDate,
       dueDate,
       notes,
@@ -133,17 +128,6 @@ export function InvoiceForm({ invoice }: { invoice?: Invoice }) {
                 {c.name}
               </option>
             ))}
-          </Select>
-          <Select
-            label="Status"
-            value={status}
-            onChange={(e) =>
-              setStatus(e.target.value as Invoice["status"])
-            }
-          >
-            <option value="unpaid">Unpaid</option>
-            <option value="paid">Paid</option>
-            <option value="overdue">Overdue</option>
           </Select>
           <Input
             label="Issue Date"

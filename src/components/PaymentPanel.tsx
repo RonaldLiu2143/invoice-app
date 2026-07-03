@@ -9,14 +9,12 @@ import {
   getAmountPaid,
   getBalanceDue,
   calculateTotals,
+  PAYMENT_TOLERANCE,
+  todayISO,
 } from "@/lib/calculations";
 import { Card, CardHeader } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input, Textarea } from "@/components/FormFields";
-
-function todayISO() {
-  return new Date().toISOString().split("T")[0];
-}
 
 export function PaymentPanel({
   invoice,
@@ -45,7 +43,7 @@ export function PaymentPanel({
       alert("Enter a valid payment amount.");
       return;
     }
-    if (value > balanceDue + 0.005) {
+    if (value > balanceDue + PAYMENT_TOLERANCE) {
       alert(`Payment cannot exceed the balance due (${formatCurrency(balanceDue)}).`);
       return;
     }
