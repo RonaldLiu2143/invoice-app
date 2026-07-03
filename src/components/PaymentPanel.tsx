@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Wallet } from "lucide-react";
+import { Wallet } from "lucide-react";
 import type { Invoice } from "@/lib/types";
 import {
   formatCurrency,
-  formatDate,
   getAmountPaid,
   getBalanceDue,
-  calculateTotals,
+  calculateInvoiceTotals,
   PAYMENT_TOLERANCE,
   todayISO,
 } from "@/lib/calculations";
@@ -19,23 +18,19 @@ import { Input, Textarea } from "@/components/FormFields";
 export function PaymentPanel({
   invoice,
   onAddPayment,
-  onRemovePayment,
   onPayInFull,
 }: {
   invoice: Invoice;
   onAddPayment: (amount: number, date: string, note: string) => void;
-  onRemovePayment: (paymentId: string) => void;
   onPayInFull: () => void;
 }) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(todayISO());
   const [note, setNote] = useState("");
 
-  const totals = calculateTotals(invoice.lineItems, invoice.taxRate);
+  const totals = calculateInvoiceTotals(invoice);
   const amountPaid = getAmountPaid(invoice);
   const balanceDue = getBalanceDue(invoice);
-  const payments = invoice.payments ?? [];
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const value = parseFloat(amount);
@@ -122,47 +117,6 @@ export function PaymentPanel({
             </Button>
           </div>
         </form>
-      )}
-
-      {payments.length > 0 ? (
-        <div>
-          <h3 className="mb-3 text-sm font-medium text-slate-700">
-            Payment history
-          </h3>
-          <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
-            {[...payments]
-              .sort(
-                (a, b) =>
-                  new Date(b.date).getTime() - new Date(a.date).getTime()
-              )
-              .map((payment) => (
-                <li
-                  key={payment.id}
-                  className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                >
-                  <div>
-                    <p className="font-medium text-slate-900">
-                      {formatCurrency(payment.amount)}
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      {formatDate(payment.date)}
-                      {payment.note ? ` · ${payment.note}` : ""}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="!p-2 text-red-600 hover:bg-red-50"
-                    onClick={() => onRemovePayment(payment.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </li>
-              ))}
-          </ul>
-        </div>
-      ) : (
-        <p className="text-sm text-slate-500">No payments recorded yet.</p>
       )}
     </Card>
   );

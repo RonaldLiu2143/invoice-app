@@ -24,7 +24,7 @@ export function InvoicePreview({
 }: InvoiceTemplateProps & { templateId: InvoiceTemplateId }) {
   const Template = TEMPLATE_MAP[templateId] ?? ClassicTemplate;
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+    <div className="overflow-x-auto shadow-sm">
       <Template {...props} />
     </div>
   );

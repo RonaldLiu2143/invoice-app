@@ -5,19 +5,20 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { useInvoice } from "@/context/InvoiceContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import type { InvoiceStatus } from "@/lib/types";
+import type { DocumentType, InvoiceStatus } from "@/lib/types";
+import { DocumentStatusBadge } from "@/components/DocumentStatusBadge";
 import { Card } from "@/components/Card";
 import { PageHeader } from "@/components/PageHeader";
 import { TableScroll } from "@/components/TableScroll";
 import { Button } from "@/components/Button";
 import { SearchBar, SearchResultsHint } from "@/components/SearchBar";
-import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState, LoadingState } from "@/components/EmptyState";
 import {
-  calculateTotals,
+  calculateInvoiceTotals,
   formatCurrency,
   formatDate,
   getBalanceDue,
+  documentLabel,
 } from "@/lib/calculations";
 import { matchesInvoice } from "@/lib/search";
 
@@ -25,6 +26,7 @@ export default function InvoicesPage() {
   const { data, isLoaded, getCustomer, getEffectiveStatus } = useInvoice();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | InvoiceStatus>("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | DocumentType>("all");
   const debouncedSearch = useDebouncedValue(search);
 
   if (!isLoaded) return <LoadingState />;
@@ -38,13 +40,15 @@ export default function InvoicesPage() {
           const status = getEffectiveStatus(inv);
           const matchesStatus =
             statusFilter === "all" || status === statusFilter;
-          return matchesSearchQuery && matchesStatus;
+          const matchesType =
+            typeFilter === "all" || inv.documentType === typeFilter;
+          return matchesSearchQuery && matchesStatus && matchesType;
         })
         .sort(
           (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         ),
-    [data.invoices, debouncedSearch, statusFilter, getCustomer, getEffectiveStatus]
+    [data.invoices, debouncedSearch, statusFilter, typeFilter, getCustomer, getEffectiveStatus]
   );
 
   return (
@@ -53,12 +57,17 @@ export default function InvoicesPage() {
         title="Invoices"
         description="Search and manage all your invoices"
         action={
-          <Link href="/invoices/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              New Invoice
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/invoices/new?type=quote">
+              <Button variant="secondary">New Quote</Button>
+            </Link>
+            <Link href="/invoices/new">
+              <Button>
+                <Plus className="h-4 w-4" />
+                New Invoice
+              </Button>
+            </Link>
+          </div>
         }
       />
 
@@ -70,6 +79,17 @@ export default function InvoicesPage() {
             placeholder="Search invoices..."
             className="flex-1"
           />
+          <select
+            value={typeFilter}
+            onChange={(e) =>
+              setTypeFilter(e.target.value as "all" | DocumentType)
+            }
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 sm:w-auto"
+          >
+            <option value="all">All types</option>
+            <option value="invoice">Invoices</option>
+            <option value="quote">Quotes</option>
+          </select>
           <select
             value={statusFilter}
             onChange={(e) =>
@@ -116,6 +136,7 @@ export default function InvoicesPage() {
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
+                  <th className="px-3 py-3 font-medium sm:px-6">Type</th>
                   <th className="px-3 py-3 font-medium sm:px-6">Invoice #</th>
                   <th className="px-3 py-3 font-medium sm:px-6">Customer</th>
                   <th className="px-3 py-3 font-medium sm:px-6">Issue Date</th>
@@ -128,12 +149,15 @@ export default function InvoicesPage() {
               <tbody>
                 {filtered.map((inv) => {
                   const customer = getCustomer(inv.customerId);
-                  const totals = calculateTotals(inv.lineItems, inv.taxRate);
+                  const totals = calculateInvoiceTotals(inv);
                   return (
                     <tr
                       key={inv.id}
                       className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
                     >
+                      <td className="px-3 py-4 text-slate-600 sm:px-6">
+                        {documentLabel(inv)}
+                      </td>
                       <td className="px-3 py-4 sm:px-6">
                         <Link
                           href={`/invoices/${inv.id}`}
@@ -158,7 +182,7 @@ export default function InvoicesPage() {
                         {formatCurrency(getBalanceDue(inv))}
                       </td>
                       <td className="px-3 py-4 sm:px-6">
-                      <StatusBadge status={getEffectiveStatus(inv)} />
+                      <DocumentStatusBadge invoice={inv} status={getEffectiveStatus(inv)} />
                     </td>
                   </tr>
                 );

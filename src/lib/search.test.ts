@@ -22,6 +22,7 @@ const product: Product = {
 const invoice: Invoice = {
   id: "i1",
   invoiceNumber: "1001",
+  documentType: "invoice",
   customerId: "c1",
   lineItems: [{ id: "l1", description: "Logo Design", quantity: 1, unitPrice: 500 }],
   taxRate: 0,

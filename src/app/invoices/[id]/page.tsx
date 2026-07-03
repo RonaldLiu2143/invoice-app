@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Copy,
   Download,
+  FileCheck,
   Mail,
   Share2,
   Pencil,
@@ -14,18 +16,21 @@ import {
 import { useInvoice } from "@/context/InvoiceContext";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
-import { StatusBadge } from "@/components/StatusBadge";
+import { DocumentStatusBadge } from "@/components/DocumentStatusBadge";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { LoadingState } from "@/components/EmptyState";
 import {
-  calculateTotals,
+  documentLabel,
   formatDate,
+  isQuote,
 } from "@/lib/calculations";
-import { downloadInvoicePDF } from "@/lib/pdf";
+import { downloadInvoicePDF, downloadReceiptPDF } from "@/lib/pdf";
 import { getMailtoLink, shareInvoice } from "@/lib/share";
 import { resolveTemplateId, INVOICE_TEMPLATES } from "@/lib/templates";
-import { InvoicePreview } from "@/components/invoice-templates";
+import { InvoicePdfPreview } from "@/components/InvoicePdfPreview";
 import { PaymentPanel } from "@/components/PaymentPanel";
+import { PaymentHistoryPanel } from "@/components/PaymentHistoryPanel";
+import { JobPhotosPanel } from "@/components/JobPhotosPanel";
 import { Select } from "@/components/FormFields";
 import type { InvoiceTemplateId } from "@/lib/types";
 
@@ -44,6 +49,8 @@ export default function InvoiceDetailPage({
     getEffectiveStatus,
     updateInvoice,
     deleteInvoice,
+    duplicateInvoice,
+    convertQuoteToInvoice,
     addPayment,
     removePayment,
     payInvoiceInFull,
@@ -67,7 +74,8 @@ export default function InvoiceDetailPage({
 
   const customer = getCustomer(invoice.customerId);
   const effectiveStatus = getEffectiveStatus(invoice);
-  const totals = calculateTotals(invoice.lineItems, invoice.taxRate);
+  const quote = isQuote(invoice);
+  const typeLabel = documentLabel(invoice);
 
   const handleStatusChange = (status: "paid" | "unpaid" | "overdue") => {
     if (status === "paid") {
@@ -82,7 +90,7 @@ export default function InvoiceDetailPage({
   };
 
   const handleDelete = () => {
-    if (confirm("Delete this invoice permanently?")) {
+    if (confirm(`Delete this ${typeLabel.toLowerCase()} permanently?`)) {
       deleteInvoice(invoice.id);
       router.push("/invoices");
     }
@@ -91,6 +99,28 @@ export default function InvoiceDetailPage({
   const handleDownloadPDF = () => {
     if (!customer) return;
     downloadInvoicePDF(invoice, customer, data.settings);
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!customer) return;
+    downloadReceiptPDF(invoice, customer, data.settings);
+  };
+
+  const handleDuplicate = () => {
+    const copy = duplicateInvoice(invoice.id);
+    if (copy) router.push(`/invoices/${copy.id}`);
+  };
+
+  const handleConvertQuote = () => {
+    if (
+      !confirm(
+        "Convert this quote to an invoice? It will get a new invoice number and today's issue date."
+      )
+    ) {
+      return;
+    }
+    const converted = convertQuoteToInvoice(invoice.id);
+    if (converted) router.refresh();
   };
 
   const activeTemplateId = resolveTemplateId(invoice, data.settings);
@@ -116,10 +146,10 @@ export default function InvoiceDetailPage({
       <div>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-900">
-            Edit Invoice #{invoice.invoiceNumber}
+            Edit {typeLabel} #{invoice.invoiceNumber}
           </h1>
         </div>
-        <InvoiceForm invoice={invoice} />
+        <InvoiceForm invoice={invoice} onSaved={() => setEditing(false)} />
       </div>
     );
   }
@@ -140,16 +170,35 @@ export default function InvoiceDetailPage({
         <div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
             <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
-              Invoice #{invoice.invoiceNumber}
+              {typeLabel} #{invoice.invoiceNumber}
             </h1>
-            <StatusBadge status={effectiveStatus} />
+            <DocumentStatusBadge
+              invoice={invoice}
+              status={effectiveStatus}
+              size="lg"
+            />
           </div>
           <p className="mt-1 text-slate-500">
-            Issued {formatDate(invoice.issueDate)} · Due{" "}
-            {formatDate(invoice.dueDate)}
+            Issued {formatDate(invoice.issueDate)}
+            {quote
+              ? ` · Valid until ${formatDate(invoice.dueDate)}`
+              : ` · Due ${formatDate(invoice.dueDate)}`}
+            {invoice.jobReference?.trim()
+              ? ` · Job/PO: ${invoice.jobReference.trim()}`
+              : ""}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {quote && (
+            <Button onClick={handleConvertQuote}>
+              <FileCheck className="h-4 w-4" />
+              Convert to Invoice
+            </Button>
+          )}
+          <Button variant="secondary" onClick={handleDuplicate}>
+            <Copy className="h-4 w-4" />
+            Duplicate
+          </Button>
           <Button variant="secondary" onClick={() => setEditing(true)}>
             <Pencil className="h-4 w-4" />
             Edit
@@ -158,6 +207,12 @@ export default function InvoiceDetailPage({
             <Download className="h-4 w-4" />
             PDF
           </Button>
+          {!quote && effectiveStatus === "paid" && (
+            <Button variant="secondary" onClick={handleDownloadReceipt}>
+              <Download className="h-4 w-4" />
+              Receipt
+            </Button>
+          )}
           <Button variant="secondary" onClick={handleEmail}>
             <Mail className="h-4 w-4" />
             Email
@@ -178,59 +233,77 @@ export default function InvoiceDetailPage({
         </div>
       )}
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        {(["paid", "unpaid", "overdue"] as const).map((s) => (
-          <Button
-            key={s}
-            variant={effectiveStatus === s ? "primary" : "secondary"}
-            className="capitalize"
-            onClick={() => handleStatusChange(s)}
-          >
-            Mark {s}
-          </Button>
-        ))}
-      </div>
+      {!quote && (
+        <>
+          <div className="mb-6 flex flex-wrap gap-2">
+            {(["paid", "unpaid", "overdue"] as const).map((s) => (
+              <Button
+                key={s}
+                variant={effectiveStatus === s ? "primary" : "secondary"}
+                className="capitalize"
+                onClick={() => handleStatusChange(s)}
+              >
+                Mark {s}
+              </Button>
+            ))}
+          </div>
 
-      <PaymentPanel
-        invoice={invoice}
-        onAddPayment={(amount, date, note) =>
-          addPayment(invoice.id, amount, date, note)
-        }
-        onRemovePayment={(paymentId) =>
-          removePayment(invoice.id, paymentId)
-        }
-        onPayInFull={() => payInvoiceInFull(invoice.id)}
+          <PaymentPanel
+            invoice={invoice}
+            onAddPayment={(amount, date, note) =>
+              addPayment(invoice.id, amount, date, note)
+            }
+            onPayInFull={() => payInvoiceInFull(invoice.id)}
+          />
+
+          <PaymentHistoryPanel
+            invoice={invoice}
+            onRemovePayment={(paymentId) =>
+              removePayment(invoice.id, paymentId)
+            }
+          />
+        </>
+      )}
+
+      <JobPhotosPanel
+        photos={invoice.jobPhotos ?? []}
+        onChange={(jobPhotos) => updateInvoice(invoice.id, { jobPhotos })}
       />
 
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <Select
-          label="Invoice template"
-          value={activeTemplateId}
-          onChange={(e) =>
-            handleTemplateChange(e.target.value as InvoiceTemplateId)
-          }
-          className="w-full sm:max-w-xs"
-        >
-          {INVOICE_TEMPLATES.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </Select>
-      </div>
+      <Card className="mb-6">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">PDF Preview</h2>
+            <p className="text-sm text-slate-500">
+              Live preview of the PDF your customer will receive
+            </p>
+          </div>
+          <Select
+            label="Template"
+            value={activeTemplateId}
+            onChange={(e) =>
+              handleTemplateChange(e.target.value as InvoiceTemplateId)
+            }
+            className="w-full sm:max-w-xs"
+          >
+            {INVOICE_TEMPLATES.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-      {customer ? (
-        <InvoicePreview
-          templateId={activeTemplateId}
-          invoice={invoice}
-          customer={customer}
-          settings={data.settings}
-          status={effectiveStatus}
-          totals={totals}
-        />
-      ) : (
-        <Card className="p-8 text-center text-slate-500">Customer not found</Card>
-      )}
+        {customer ? (
+          <InvoicePdfPreview
+            invoice={invoice}
+            customer={customer}
+            settings={data.settings}
+          />
+        ) : (
+          <p className="py-8 text-center text-slate-500">Customer not found</p>
+        )}
+      </Card>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { DollarSign, FileText, AlertCircle, TrendingUp, Plus } from "lucide-react";
 import { useInvoice } from "@/context/InvoiceContext";
@@ -11,14 +12,18 @@ import { Button } from "@/components/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { LoadingState } from "@/components/EmptyState";
 import {
+  calculateInvoiceTotals,
   formatCurrency,
   formatDate,
   getAmountPaid,
   getBalanceDue,
+  getAgingBuckets,
   resolveInvoiceStatus,
+  documentLabel,
 } from "@/lib/calculations";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { data, isLoaded, getCustomer } = useInvoice();
 
   const dashboard = useMemo(() => {
@@ -34,6 +39,8 @@ export default function DashboardPage() {
     const unpaidTotal = unpaidRows.reduce((sum, row) => sum + row.balanceDue, 0);
     const overdueCount = invoices.filter((row) => row.status === "overdue").length;
 
+    const aging = getAgingBuckets(data.invoices);
+
     const recentInvoices = [...invoices]
       .sort(
         (a, b) =>
@@ -47,6 +54,7 @@ export default function DashboardPage() {
       unpaidTotal,
       unpaidCount: unpaidRows.length,
       overdueCount,
+      aging,
       recentInvoices,
     };
   }, [data.invoices]);
@@ -86,12 +94,17 @@ export default function DashboardPage() {
         title="Dashboard"
         description="Overview of your invoicing activity"
         action={
-          <Link href="/invoices/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              New Invoice
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/invoices/new?type=quote">
+              <Button variant="secondary">New Quote</Button>
+            </Link>
+            <Link href="/invoices/new">
+              <Button>
+                <Plus className="h-4 w-4" />
+                New Invoice
+              </Button>
+            </Link>
+          </div>
         }
       />
 
@@ -111,11 +124,31 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      <Card className="mb-8">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">
+          Accounts Receivable Aging
+        </h2>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            { label: "Current", value: dashboard.aging.current, color: "text-slate-900" },
+            { label: "1–30 days overdue", value: dashboard.aging.days1to30, color: "text-amber-700" },
+            { label: "31–60 days overdue", value: dashboard.aging.days31to60, color: "text-orange-700" },
+            { label: "60+ days overdue", value: dashboard.aging.days60plus, color: "text-red-700" },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="rounded-lg bg-slate-50 p-4">
+              <p className="text-sm text-slate-500">{label}</p>
+              <p className={`text-xl font-bold ${color}`}>{formatCurrency(value)}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       <Card>
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-slate-900">
             Recent Invoices
           </h2>
+          <p className="text-xs text-slate-500 sm:hidden">Tap a row to open</p>
           <Link
             href="/invoices"
             className="text-sm font-medium text-blue-700 hover:text-blue-800"
@@ -142,18 +175,28 @@ export default function DashboardPage() {
               <tbody>
                 {dashboard.recentInvoices.map(({ invoice, status, balanceDue }) => {
                   const customer = getCustomer(invoice.customerId);
+                  const href = `/invoices/${invoice.id}`;
                   return (
                     <tr
                       key={invoice.id}
-                      className="border-b border-slate-100 last:border-0"
+                      role="link"
+                      tabIndex={0}
+                      onClick={() => router.push(href)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(href);
+                        }
+                      }}
+                      className="cursor-pointer border-b border-slate-100 transition-colors last:border-0 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                     >
                       <td className="py-3">
-                        <Link
-                          href={`/invoices/${invoice.id}`}
-                          className="font-medium text-blue-700 hover:underline"
-                        >
+                        <span className="font-medium text-blue-700">
                           #{invoice.invoiceNumber}
-                        </Link>
+                        </span>
+                        <span className="ml-2 text-xs text-slate-400">
+                          {documentLabel(invoice)}
+                        </span>
                       </td>
                       <td className="py-3 text-slate-700">
                         {customer?.name ?? "—"}

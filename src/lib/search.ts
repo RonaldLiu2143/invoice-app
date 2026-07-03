@@ -40,6 +40,7 @@ export function matchesProduct(product: Product, query: string): boolean {
   return matchesTextFields(query, [
     product.name,
     product.description,
+    product.serialNumber ?? "",
     product.price,
     String(product.price),
   ]);
@@ -53,7 +54,13 @@ export function matchesInvoice(
   if (!query.trim()) return true;
   const lineText = invoice.lineItems.map((item) => item.description).join(" ");
   return (
-    matchesTextFields(query, [invoice.invoiceNumber, invoice.notes, lineText]) ||
+    matchesTextFields(query, [
+      invoice.invoiceNumber,
+      invoice.notes,
+      invoice.jobReference ?? "",
+      invoice.terms ?? "",
+      lineText,
+    ]) ||
     (customer ? matchesCustomer(customer, query) : false)
   );
 }

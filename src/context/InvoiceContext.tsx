@@ -15,6 +15,7 @@ import type {
   AppData,
   CompanySettings,
   Customer,
+  DocumentType,
   Invoice,
   InvoiceLineItem,
   InvoiceStatus,
@@ -25,10 +26,13 @@ import {
   resolveInvoiceStatus,
   getBalanceDue,
   getAmountPaid,
-  calculateTotals,
+  calculateInvoiceTotals,
   PAYMENT_TOLERANCE,
+  todayISO,
+  dueDateFromIssue,
 } from "@/lib/calculations";
 import { defaultAppData, loadAppData, saveAppData } from "@/lib/storage";
+import { normalizeAppData } from "@/lib/normalize-data";
 
 interface InvoiceContextValue {
   data: AppData;
@@ -44,6 +48,9 @@ interface InvoiceContextValue {
   ) => Invoice;
   updateInvoice: (id: string, updates: Partial<Invoice>) => void;
   deleteInvoice: (id: string) => void;
+  duplicateInvoice: (id: string) => Invoice | undefined;
+  convertQuoteToInvoice: (quoteId: string) => Invoice | undefined;
+  importAppData: (data: AppData) => void;
   addPayment: (
     invoiceId: string,
     amount: number,
@@ -166,6 +173,7 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
       const prev = dataRef.current;
       const created: Invoice = {
         ...invoice,
+        documentType: invoice.documentType ?? "invoice",
         payments: invoice.payments ?? [],
         id: uuidv4(),
         invoiceNumber: String(prev.nextInvoiceNumber),
@@ -192,7 +200,7 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
         ...updates,
         updatedAt: new Date().toISOString(),
       };
-      const total = calculateTotals(merged.lineItems, merged.taxRate).total;
+      const total = calculateInvoiceTotals(merged).total;
       const paid = getAmountPaid(merged);
       if (paid > total + PAYMENT_TOLERANCE) return prev;
 
@@ -210,6 +218,75 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
       ...prev,
       invoices: prev.invoices.filter((invoice) => invoice.id !== id),
     }));
+  }, []);
+
+  const duplicateInvoice = useCallback((id: string): Invoice | undefined => {
+    const source = dataRef.current.invoices.find((invoice) => invoice.id === id);
+    if (!source) return undefined;
+
+    const issueDate = todayISO();
+    const duplicated = addInvoice({
+      documentType: source.documentType ?? "invoice",
+      customerId: source.customerId,
+      lineItems: source.lineItems.map((item) => ({
+        ...item,
+        id: uuidv4(),
+      })),
+      taxRate: source.taxRate,
+      discountType: source.discountType,
+      discountValue: source.discountValue,
+      status: "unpaid",
+      issueDate,
+      dueDate: dueDateFromIssue(issueDate),
+      jobReference: source.jobReference,
+      notes: source.notes,
+      terms: source.terms,
+      templateId: source.templateId,
+      payments: [],
+      jobPhotos: (source.jobPhotos ?? []).map((photo) => ({
+        ...photo,
+        id: uuidv4(),
+        createdAt: new Date().toISOString(),
+      })),
+    });
+    return duplicated;
+  }, [addInvoice]);
+
+  const convertQuoteToInvoice = useCallback(
+    (quoteId: string): Invoice | undefined => {
+      const prev = dataRef.current;
+      const quote = prev.invoices.find(
+        (invoice) => invoice.id === quoteId && invoice.documentType === "quote"
+      );
+      if (!quote) return undefined;
+
+      const now = new Date().toISOString();
+      const issueDate = todayISO();
+      const converted: Invoice = {
+        ...quote,
+        documentType: "invoice",
+        invoiceNumber: String(prev.nextInvoiceNumber),
+        issueDate,
+        dueDate: dueDateFromIssue(issueDate),
+        status: "unpaid",
+        payments: [],
+        updatedAt: now,
+      };
+
+      setData({
+        ...prev,
+        invoices: prev.invoices.map((invoice) =>
+          invoice.id === quoteId ? converted : invoice
+        ),
+        nextInvoiceNumber: prev.nextInvoiceNumber + 1,
+      });
+      return converted;
+    },
+    []
+  );
+
+  const importAppData = useCallback((imported: AppData) => {
+    setData(normalizeAppData(imported, defaultAppData));
   }, []);
 
   const addPayment = useCallback(
@@ -330,6 +407,9 @@ export function InvoiceProvider({ children }: { children: ReactNode }) {
         addInvoice,
         updateInvoice,
         deleteInvoice,
+        duplicateInvoice,
+        convertQuoteToInvoice,
+        importAppData,
         addPayment,
         removePayment,
         payInvoiceInFull,
@@ -357,5 +437,6 @@ export function createEmptyLineItem(): InvoiceLineItem {
     description: "",
     quantity: 1,
     unitPrice: 0,
+    priceMode: "unit",
   };
 }

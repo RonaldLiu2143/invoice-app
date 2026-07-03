@@ -1,41 +1,73 @@
 import type { Customer, Invoice, CompanySettings } from "./types";
-import { calculateTotals, formatCurrency, formatDate, getAmountPaid, getBalanceDue, resolveInvoiceStatus } from "./calculations";
+import {
+  calculateInvoiceTotals,
+  formatCurrency,
+  formatDate,
+  getAmountPaid,
+  getBalanceDue,
+  resolveInvoiceStatus,
+  documentLabel,
+} from "./calculations";
 
 export function buildInvoiceEmailBody(
   invoice: Invoice,
   customer: Customer,
   settings: CompanySettings
 ): string {
-  const totals = calculateTotals(invoice.lineItems, invoice.taxRate);
+  const totals = calculateInvoiceTotals(invoice);
   const amountPaid = getAmountPaid(invoice);
   const balanceDue = getBalanceDue(invoice);
   const status = resolveInvoiceStatus(invoice);
+  const label = documentLabel(invoice);
   const lines = invoice.lineItems
-    .map(
-      (item) =>
-        `  - ${item.description}: ${item.quantity} x ${formatCurrency(item.unitPrice)}`
-    )
+    .map((item) => {
+      if (item.priceMode === "flat") {
+        return `  - ${item.description}: ${formatCurrency(item.unitPrice)}`;
+      }
+      return `  - ${item.description}: ${item.quantity} x ${formatCurrency(item.unitPrice)}`;
+    })
     .join("\n");
+
+  const paymentLines =
+    invoice.payments && invoice.payments.length > 0
+      ? [
+          "",
+          "Payment history:",
+          ...invoice.payments.map(
+            (p) =>
+              `  - ${formatDate(p.date)}: ${formatCurrency(p.amount)}${p.note ? ` (${p.note})` : ""}`
+          ),
+        ]
+      : [];
 
   return [
     `Dear ${customer.name},`,
     "",
-    `Please find your invoice #${invoice.invoiceNumber} from ${settings.name}.`,
+    `Please find your ${label.toLowerCase()} #${invoice.invoiceNumber} from ${settings.name}.`,
+    invoice.jobReference?.trim()
+      ? `Job / PO: ${invoice.jobReference.trim()}`
+      : "",
     "",
     `Issue Date: ${formatDate(invoice.issueDate)}`,
-    `Due Date: ${formatDate(invoice.dueDate)}`,
-    `Status: ${status}`,
+    invoice.documentType === "quote"
+      ? `Valid Until: ${formatDate(invoice.dueDate)}`
+      : `Due Date: ${formatDate(invoice.dueDate)}`,
+    `Status: ${invoice.documentType === "quote" ? "Quote" : status}`,
     "",
     "Items:",
     lines,
     "",
     `Subtotal: ${formatCurrency(totals.subtotal)}`,
+    totals.discount > 0 ? `Discount: -${formatCurrency(totals.discount)}` : "",
     `Tax (${invoice.taxRate}%): ${formatCurrency(totals.tax)}`,
     `Total: ${formatCurrency(totals.total)}`,
-    amountPaid > 0 ? `Paid: ${formatCurrency(amountPaid)}` : "",
-    amountPaid > 0 ? `Balance due: ${formatCurrency(balanceDue)}` : "",
+    amountPaid > 0 && invoice.documentType !== "quote"
+      ? `Balance due: ${formatCurrency(balanceDue)}`
+      : "",
+    ...paymentLines,
     "",
     invoice.notes ? `Notes: ${invoice.notes}` : "",
+    invoice.terms ? `Terms: ${invoice.terms}` : "",
     "",
     "Thank you for your business!",
     settings.name,
@@ -50,7 +82,7 @@ export function getMailtoLink(
   settings: CompanySettings
 ): string {
   const subject = encodeURIComponent(
-    `Invoice #${invoice.invoiceNumber} from ${settings.name}`
+    `${documentLabel(invoice)} #${invoice.invoiceNumber} from ${settings.name}`
   );
   const body = encodeURIComponent(
     buildInvoiceEmailBody(invoice, customer, settings)
@@ -65,7 +97,7 @@ export async function shareInvoice(
   settings: CompanySettings
 ): Promise<boolean> {
   const text = buildInvoiceEmailBody(invoice, customer, settings);
-  const title = `Invoice #${invoice.invoiceNumber}`;
+  const title = `${documentLabel(invoice)} #${invoice.invoiceNumber}`;
 
   if (navigator.share) {
     try {

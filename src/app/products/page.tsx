@@ -15,7 +15,7 @@ import { formatCurrency } from "@/lib/calculations";
 import { matchesProduct } from "@/lib/search";
 import type { Product } from "@/lib/types";
 
-const emptyForm = { name: "", description: "", price: "" };
+const emptyForm = { name: "", description: "", price: "", serialNumber: "" };
 
 export default function ProductsPage() {
   const { data, isLoaded, addProduct, updateProduct, deleteProduct } =
@@ -43,6 +43,7 @@ export default function ProductsPage() {
       name: product.name,
       description: product.description,
       price: String(product.price),
+      serialNumber: product.serialNumber ?? "",
     });
     setEditingId(product.id);
     setShowForm(true);
@@ -55,6 +56,7 @@ export default function ProductsPage() {
       name: form.name,
       description: form.description,
       price: parseFloat(form.price) || 0,
+      serialNumber: form.serialNumber.trim() || undefined,
     };
     if (editingId) {
       updateProduct(editingId, payload);
@@ -103,6 +105,12 @@ export default function ProductsPage() {
               value={form.price}
               onChange={(e) => setForm({ ...form, price: e.target.value })}
               required
+            />
+            <Input
+              label="Serial Number (S/N)"
+              value={form.serialNumber}
+              onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
+              placeholder="Default S/N for this product"
             />
             <div className="sm:col-span-2">
               <Textarea
@@ -164,10 +172,11 @@ export default function ProductsPage() {
       ) : (
         <Card className="!p-0">
           <TableScroll>
-            <table className="w-full min-w-[520px] text-sm">
+            <table className="w-full min-w-[600px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
                   <th className="px-3 py-3 font-medium sm:px-6">Name</th>
+                  <th className="px-3 py-3 font-medium sm:px-6">S/N</th>
                   <th className="px-3 py-3 font-medium sm:px-6">Description</th>
                   <th className="px-3 py-3 font-medium sm:px-6">Price</th>
                   <th className="px-3 py-3 text-right font-medium sm:px-6">Actions</th>
@@ -181,6 +190,9 @@ export default function ProductsPage() {
                   >
                     <td className="px-3 py-4 font-medium text-slate-900 sm:px-6">
                       {product.name}
+                    </td>
+                    <td className="px-3 py-4 text-slate-600 sm:px-6">
+                      {product.serialNumber || "—"}
                     </td>
                     <td className="px-3 py-4 text-slate-600 sm:px-6">
                       {product.description}
