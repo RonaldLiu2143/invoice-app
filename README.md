@@ -1,6 +1,6 @@
 # InvoiceApp
 
-**Live demo:** [https://invoice-app-zeta-orcin.vercel.app](https://invoice-app-zeta-orcin.vercel.app)
+**Live demo:** [https://invoice-app-ronaldliu2143s-projects.vercel.app](https://invoice-app-ronaldliu2143s-projects.vercel.app)
 
 A modern invoice and quote management app for solo contractors, built with Next.js, React, and Tailwind CSS. Everything runs in the browser — no account or backend required.
 

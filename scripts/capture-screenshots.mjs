@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 import { readFileSync } from "fs";
 
 const BASE_URL =
-  process.env.SCREENSHOT_URL ?? "https://invoice-app-zeta-orcin.vercel.app";
+  process.env.SCREENSHOT_URL ?? "https://invoice-app-ronaldliu2143s-projects.vercel.app";
 const OUT_DIR = "docs/screenshots";
 const demoAppData = JSON.parse(
   readFileSync("docs/demo-data.json", "utf8")
