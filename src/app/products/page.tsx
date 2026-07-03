@@ -6,8 +6,10 @@ import { useInvoice } from "@/context/InvoiceContext";
 import { Card, CardHeader } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input, Textarea } from "@/components/FormFields";
+import { SearchBar, SearchResultsHint } from "@/components/SearchBar";
 import { EmptyState, LoadingState } from "@/components/EmptyState";
 import { formatCurrency } from "@/lib/calculations";
+import { matchesProduct } from "@/lib/search";
 import type { Product } from "@/lib/types";
 
 const emptyForm = { name: "", description: "", price: "" };
@@ -18,8 +20,13 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [search, setSearch] = useState("");
 
   if (!isLoaded) return <LoadingState />;
+
+  const filteredProducts = data.products.filter((product) =>
+    matchesProduct(product, search)
+  );
 
   const openCreate = () => {
     setForm(emptyForm);
@@ -123,6 +130,21 @@ export default function ProductsPage() {
         </Card>
       )}
 
+      {data.products.length > 0 && (
+        <Card className="mb-6 !p-4">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by name, description, or price..."
+          />
+          <SearchResultsHint
+            query={search}
+            resultCount={filteredProducts.length}
+            totalCount={data.products.length}
+          />
+        </Card>
+      )}
+
       {data.products.length === 0 ? (
         <EmptyState
           title="No products yet"
@@ -133,6 +155,11 @@ export default function ProductsPage() {
               Add Product
             </Button>
           }
+        />
+      ) : filteredProducts.length === 0 ? (
+        <EmptyState
+          title="No results"
+          description="Try a different product name, description, or price."
         />
       ) : (
         <Card className="!p-0 overflow-hidden">
@@ -146,7 +173,7 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {data.products.map((product) => (
+              {filteredProducts.map((product) => (
                 <tr
                   key={product.id}
                   className="border-b border-slate-100 last:border-0"

@@ -6,7 +6,9 @@ import { useInvoice } from "@/context/InvoiceContext";
 import { Card, CardHeader } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input, Textarea } from "@/components/FormFields";
+import { SearchBar, SearchResultsHint } from "@/components/SearchBar";
 import { EmptyState, LoadingState } from "@/components/EmptyState";
+import { matchesCustomer } from "@/lib/search";
 import type { Customer } from "@/lib/types";
 
 const emptyForm = { name: "", email: "", phone: "", address: "" };
@@ -17,8 +19,13 @@ export default function CustomersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [search, setSearch] = useState("");
 
   if (!isLoaded) return <LoadingState />;
+
+  const filteredCustomers = data.customers.filter((customer) =>
+    matchesCustomer(customer, search)
+  );
 
   const openCreate = () => {
     setForm(emptyForm);
@@ -112,6 +119,21 @@ export default function CustomersPage() {
         </Card>
       )}
 
+      {data.customers.length > 0 && (
+        <Card className="mb-6 !p-4">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by name, email, phone, or address..."
+          />
+          <SearchResultsHint
+            query={search}
+            resultCount={filteredCustomers.length}
+            totalCount={data.customers.length}
+          />
+        </Card>
+      )}
+
       {data.customers.length === 0 ? (
         <EmptyState
           title="No customers yet"
@@ -122,6 +144,11 @@ export default function CustomersPage() {
               Add Customer
             </Button>
           }
+        />
+      ) : filteredCustomers.length === 0 ? (
+        <EmptyState
+          title="No results"
+          description="Try a different name, phone number, email, or address."
         />
       ) : (
         <Card className="!p-0 overflow-hidden">
@@ -136,7 +163,7 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody>
-              {data.customers.map((customer) => (
+              {filteredCustomers.map((customer) => (
                 <tr
                   key={customer.id}
                   className="border-b border-slate-100 last:border-0"

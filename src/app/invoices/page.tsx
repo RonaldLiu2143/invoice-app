@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useInvoice } from "@/context/InvoiceContext";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/FormFields";
+import { SearchBar, SearchResultsHint } from "@/components/SearchBar";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState, LoadingState } from "@/components/EmptyState";
 import {
@@ -15,6 +15,7 @@ import {
   formatDate,
   getBalanceDue,
 } from "@/lib/calculations";
+import { matchesInvoice } from "@/lib/search";
 
 export default function InvoicesPage() {
   const { data, isLoaded, getCustomer, getEffectiveStatus } = useInvoice();
@@ -26,12 +27,7 @@ export default function InvoicesPage() {
   const filtered = data.invoices
     .filter((inv) => {
       const customer = getCustomer(inv.customerId);
-      const q = search.toLowerCase();
-      const matchesSearch =
-        !q ||
-        inv.invoiceNumber.includes(q) ||
-        customer?.name.toLowerCase().includes(q) ||
-        customer?.email.toLowerCase().includes(q);
+      const matchesSearch = matchesInvoice(inv, customer, search);
       const status = getEffectiveStatus(inv);
       const matchesStatus = statusFilter === "all" || status === statusFilter;
       return matchesSearch && matchesStatus;
@@ -60,15 +56,12 @@ export default function InvoicesPage() {
 
       <Card className="mb-6 !p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              placeholder="Search by invoice #, customer name, or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="!pl-9"
-            />
-          </div>
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search invoice #, customer name, phone, address, email, or line items..."
+            className="flex-1"
+          />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -81,6 +74,11 @@ export default function InvoicesPage() {
             <option value="overdue">Overdue</option>
           </select>
         </div>
+        <SearchResultsHint
+          query={search}
+          resultCount={filtered.length}
+          totalCount={data.invoices.length}
+        />
       </Card>
 
       {filtered.length === 0 ? (
