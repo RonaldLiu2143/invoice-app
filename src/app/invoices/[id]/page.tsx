@@ -98,12 +98,20 @@ export default function InvoiceDetailPage({
 
   const handleDownloadPDF = () => {
     if (!customer) return;
-    downloadInvoicePDF(invoice, customer, data.settings);
+    const outcome = downloadInvoicePDF(invoice, customer, data.settings);
+    if (outcome === "opened") {
+      setShareMsg("PDF opened — use your browser's Share menu to save it.");
+      setTimeout(() => setShareMsg(""), 4000);
+    }
   };
 
   const handleDownloadReceipt = () => {
     if (!customer) return;
-    downloadReceiptPDF(invoice, customer, data.settings);
+    const outcome = downloadReceiptPDF(invoice, customer, data.settings);
+    if (outcome === "opened") {
+      setShareMsg("Receipt opened — use your browser's Share menu to save it.");
+      setTimeout(() => setShareMsg(""), 4000);
+    }
   };
 
   const handleDuplicate = () => {
@@ -136,9 +144,19 @@ export default function InvoiceDetailPage({
 
   const handleShare = async () => {
     if (!customer) return;
-    const ok = await shareInvoice(invoice, customer, data.settings);
-    setShareMsg(ok ? "Copied to clipboard!" : "Could not share.");
-    setTimeout(() => setShareMsg(""), 3000);
+    const result = await shareInvoice(invoice, customer, data.settings);
+    const message =
+      result === "shared"
+        ? "Shared successfully!"
+        : result === "copied"
+          ? "Copied to clipboard!"
+          : result === "failed"
+            ? "Could not share. Try the PDF button instead."
+            : "";
+    if (message) {
+      setShareMsg(message);
+      setTimeout(() => setShareMsg(""), 3000);
+    }
   };
 
   if (editing) {

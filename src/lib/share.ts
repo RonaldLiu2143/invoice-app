@@ -7,7 +7,9 @@ import {
   getBalanceDue,
   resolveInvoiceStatus,
   documentLabel,
+  isQuote,
 } from "./calculations";
+import { generateInvoicePDF } from "./pdf";
 
 export function buildInvoiceEmailBody(
   invoice: Invoice,
@@ -91,27 +93,49 @@ export function getMailtoLink(
   return `mailto:${to}?subject=${subject}&body=${body}`;
 }
 
+export type ShareResult = "shared" | "copied" | "cancelled" | "failed";
+
+function invoicePdfFile(
+  invoice: Invoice,
+  customer: Customer,
+  settings: CompanySettings
+): File {
+  const doc = generateInvoicePDF(invoice, customer, settings);
+  const blob = doc.output("blob");
+  const prefix = isQuote(invoice) ? "quote" : "invoice";
+  return new File([blob], `${prefix}-${invoice.invoiceNumber}.pdf`, {
+    type: "application/pdf",
+  });
+}
+
 export async function shareInvoice(
   invoice: Invoice,
   customer: Customer,
   settings: CompanySettings
-): Promise<boolean> {
+): Promise<ShareResult> {
   const text = buildInvoiceEmailBody(invoice, customer, settings);
   const title = `${documentLabel(invoice)} #${invoice.invoiceNumber}`;
 
-  if (navigator.share) {
+  if (typeof navigator !== "undefined" && navigator.share) {
     try {
+      const file = invoicePdfFile(invoice, customer, settings);
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title, text, files: [file] });
+        return "shared";
+      }
       await navigator.share({ title, text });
-      return true;
-    } catch {
-      return false;
+      return "shared";
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return "cancelled";
+      }
     }
   }
 
   try {
     await navigator.clipboard.writeText(text);
-    return true;
+    return "copied";
   } catch {
-    return false;
+    return "failed";
   }
 }

@@ -58,15 +58,13 @@ export default function InvoicesPage() {
         description="Search and manage all your invoices"
         action={
           <div className="flex flex-wrap gap-2">
-            <Link href="/invoices/new?type=quote">
-              <Button variant="secondary">New Quote</Button>
-            </Link>
-            <Link href="/invoices/new">
-              <Button>
-                <Plus className="h-4 w-4" />
-                New Invoice
-              </Button>
-            </Link>
+            <Button href="/invoices/new?type=quote" variant="secondary">
+              New Quote
+            </Button>
+            <Button href="/invoices/new">
+              <Plus className="h-4 w-4" />
+              New Invoice
+            </Button>
           </div>
         }
       />
@@ -121,12 +119,10 @@ export default function InvoicesPage() {
           }
           action={
             data.invoices.length === 0 ? (
-              <Link href="/invoices/new">
-                <Button>
-                  <Plus className="h-4 w-4" />
-                  New Invoice
-                </Button>
-              </Link>
+              <Button href="/invoices/new">
+                <Plus className="h-4 w-4" />
+                New Invoice
+              </Button>
             ) : undefined
           }
         />

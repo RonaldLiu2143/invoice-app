@@ -40,7 +40,7 @@ export function CustomerNameField({
     customerName.trim().length > 0 && !exactMatch && !customerId;
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handlePointerDown = (event: PointerEvent) => {
       if (
         containerRef.current &&
         !containerRef.current.contains(event.target as Node)
@@ -48,8 +48,8 @@ export function CustomerNameField({
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, []);
 
   const selectCustomer = (customer: Customer) => {
@@ -95,8 +95,8 @@ export function CustomerNameField({
               <li key={customer.id}>
                 <button
                   type="button"
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50"
-                  onMouseDown={(e) => e.preventDefault()}
+                  className="w-full px-3 py-2.5 text-left text-sm hover:bg-blue-50 active:bg-blue-50"
+                  onPointerDown={(e) => e.preventDefault()}
                   onClick={() => selectCustomer(customer)}
                 >
                   <span className="font-medium text-slate-900">{customer.name}</span>

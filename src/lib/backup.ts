@@ -1,6 +1,7 @@
 import type { AppData } from "./types";
 import { normalizeAppData } from "./normalize-data";
 import { defaultAppData } from "./storage";
+import { downloadBlob } from "./download";
 
 const BACKUP_VERSION = 1;
 
@@ -16,16 +17,11 @@ export function exportAppData(data: AppData): string {
   );
 }
 
-export function downloadBackup(data: AppData): void {
+export function downloadBackup(data: AppData): "downloaded" | "opened" {
   const json = exportAppData(data);
   const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
   const stamp = new Date().toISOString().split("T")[0];
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `invoice-app-backup-${stamp}.json`;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  return downloadBlob(blob, `invoice-app-backup-${stamp}.json`);
 }
 
 export function parseBackupFile(raw: string): AppData {

@@ -41,7 +41,7 @@ export function ProductDescriptionField({
   const linkedProduct = products.find((product) => product.id === productId);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handlePointerDown = (event: PointerEvent) => {
       if (
         containerRef.current &&
         !containerRef.current.contains(event.target as Node)
@@ -49,8 +49,8 @@ export function ProductDescriptionField({
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, []);
 
   const selectProduct = (product: Product) => {
@@ -82,8 +82,8 @@ export function ProductDescriptionField({
             <li key={product.id}>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50"
-                onMouseDown={(e) => e.preventDefault()}
+                className="w-full px-3 py-2.5 text-left text-sm hover:bg-blue-50 active:bg-blue-50"
+                onPointerDown={(e) => e.preventDefault()}
                 onClick={() => selectProduct(product)}
               >
                 <span className="font-medium text-slate-900">{product.name}</span>

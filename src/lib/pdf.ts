@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { downloadBlob } from "./download";
 import type {
   Customer,
   Invoice,
@@ -573,10 +574,11 @@ export function downloadInvoicePDF(
   invoice: Invoice,
   customer: Customer,
   settings: CompanySettings
-): void {
+): "downloaded" | "opened" {
   const doc = generateInvoicePDF(invoice, customer, settings);
   const prefix = isQuote(invoice) ? "quote" : "invoice";
-  doc.save(`${prefix}-${invoice.invoiceNumber}.pdf`);
+  const blob = doc.output("blob");
+  return downloadBlob(blob, `${prefix}-${invoice.invoiceNumber}.pdf`);
 }
 
 export function generateReceiptPDF(
@@ -691,7 +693,8 @@ export function downloadReceiptPDF(
   invoice: Invoice,
   customer: Customer,
   settings: CompanySettings
-): void {
+): "downloaded" | "opened" {
   const doc = generateReceiptPDF(invoice, customer, settings);
-  doc.save(`receipt-${invoice.invoiceNumber}.pdf`);
+  const blob = doc.output("blob");
+  return downloadBlob(blob, `receipt-${invoice.invoiceNumber}.pdf`);
 }
