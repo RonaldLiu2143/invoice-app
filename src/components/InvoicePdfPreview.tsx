@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { Customer, Invoice, CompanySettings } from "@/lib/types";
+import { useEffect, useMemo, useState } from "react";
+import type { Customer, Invoice, CompanySettings, InvoiceStatus, InvoiceTemplateId } from "@/lib/types";
 import { generateInvoicePDF } from "@/lib/pdf";
-import { Button } from "@/components/Button";
+import { calculateInvoiceTotals } from "@/lib/calculations";
+import { InvoiceDocumentLayout } from "@/components/invoice-templates/InvoiceDocumentLayout";
 
-function isMobilePdfPreview(): boolean {
+function prefersHtmlPreview(): boolean {
   if (typeof navigator === "undefined") return false;
   return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
 }
@@ -14,23 +15,43 @@ export function InvoicePdfPreview({
   invoice,
   customer,
   settings,
+  templateId,
+  status,
   className = "",
 }: {
   invoice: Invoice;
   customer: Customer;
   settings: CompanySettings;
+  templateId: InvoiceTemplateId;
+  status: InvoiceStatus;
   className?: string;
 }) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [mobilePreview, setMobilePreview] = useState(false);
+  const [useHtmlPreview, setUseHtmlPreview] = useState(false);
+  const totals = useMemo(() => calculateInvoiceTotals(invoice), [invoice]);
 
   useEffect(() => {
-    setMobilePreview(isMobilePdfPreview());
+    setUseHtmlPreview(prefersHtmlPreview());
     const doc = generateInvoicePDF(invoice, customer, settings);
     const url = URL.createObjectURL(doc.output("blob"));
     setPdfUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [invoice, customer, settings]);
+
+  if (useHtmlPreview) {
+    return (
+      <div className={`min-h-[480px] ${className}`}>
+        <InvoiceDocumentLayout
+          templateId={templateId}
+          invoice={invoice}
+          customer={customer}
+          settings={settings}
+          status={status}
+          totals={totals}
+        />
+      </div>
+    );
+  }
 
   if (!pdfUrl) {
     return (
@@ -42,24 +63,10 @@ export function InvoicePdfPreview({
     );
   }
 
-  if (mobilePreview) {
-    return (
-      <div
-        className={`flex min-h-[200px] flex-col items-center justify-center gap-4 rounded-lg border border-slate-200 bg-slate-50 p-6 text-center ${className}`}
-      >
-        <p className="text-sm text-slate-600">
-          Inline PDF preview isn&apos;t supported on this device. Open the PDF to
-          view or share it.
-        </p>
-        <Button href={pdfUrl} variant="secondary" target="_blank">
-          Open PDF
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className={`overflow-hidden rounded-lg border border-slate-300 bg-slate-100 shadow-sm ${className}`}>
+    <div
+      className={`overflow-hidden rounded-lg border border-slate-300 bg-slate-100 shadow-sm ${className}`}
+    >
       <iframe
         src={`${pdfUrl}#toolbar=0&navpanes=0`}
         title={`Invoice ${invoice.invoiceNumber} PDF preview`}

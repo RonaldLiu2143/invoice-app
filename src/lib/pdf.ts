@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { downloadBlob } from "./download";
+import { downloadPdfBlob, type DownloadOutcome } from "./download";
 import type {
   Customer,
   Invoice,
@@ -31,6 +31,31 @@ const PAGE_BOTTOM = 280;
 /** Minimum line rows so a short invoice still looks balanced on one page */
 import { MIN_LINE_ITEM_ROWS } from "./invoice-layout";
 const LINE_ROW_HEIGHT = 8;
+
+type ImageFormat = "JPEG" | "PNG" | "WEBP";
+
+function imageFormatFromDataUrl(dataUrl: string): ImageFormat {
+  const match = dataUrl.match(/^data:image\/(\w+);/i);
+  const fmt = match?.[1]?.toLowerCase();
+  if (fmt === "png") return "PNG";
+  if (fmt === "webp") return "WEBP";
+  return "JPEG";
+}
+
+function addDataUrlImage(
+  doc: Doc,
+  dataUrl: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number
+): void {
+  try {
+    doc.addImage(dataUrl, imageFormatFromDataUrl(dataUrl), x, y, w, h);
+  } catch {
+    // skip unsupported or corrupt image data
+  }
+}
 
 const TEXT_DARK: RGB = [30, 41, 59];
 const TEXT_MUTED: RGB = [100, 116, 139];
@@ -154,12 +179,8 @@ function drawHeader(doc: Doc, ctx: PdfContext, accent: RGB): number {
   let titleX = MARGIN;
 
   if (ctx.settings.logoDataUrl) {
-    try {
-      doc.addImage(ctx.settings.logoDataUrl, "JPEG", MARGIN, y - 4, 28, 14);
-      titleX = MARGIN + 32;
-    } catch {
-      // skip
-    }
+    addDataUrlImage(doc, ctx.settings.logoDataUrl, MARGIN, y - 4, 28, 14);
+    titleX = MARGIN + 32;
   }
 
   doc.setFont("helvetica", "bold");
@@ -366,7 +387,7 @@ function drawLeftColumn(
 
   for (const section of sections) {
     const lines = doc.splitTextToSize(section.body, leftW - 10);
-    const blockH = Math.min(lines.length * 3.6 + 10, 42);
+    const blockH = Math.min(lines.length * 3.6 + 10, 72);
     doc.setFillColor(...FILL_LIGHT);
     doc.roundedRect(leftX, y, leftW, blockH, 1.5, 1.5, "F");
     doc.setDrawColor(...BORDER_LIGHT);
@@ -468,20 +489,22 @@ function drawJobPhotos(
   for (const photo of shown) {
     doc.setDrawColor(...BORDER);
     doc.setLineWidth(0.35);
-    doc.roundedRect(x, y, colW, imgH + 8, 1, 1, "S");
-    try {
-      doc.addImage(photo.dataUrl, "JPEG", x + 1.5, y + 1.5, colW - 3, imgH);
-    } catch {
-      doc.setFontSize(7);
-      doc.setTextColor(...TEXT_MUTED);
-      doc.text("Photo", x + 4, y + imgH / 2);
-    }
+    doc.roundedRect(x, y, colW, imgH + 10, 1, 1, "S");
+    addDataUrlImage(doc, photo.dataUrl, x + 1.5, y + 1.5, colW - 3, imgH);
+    let captionY = y + imgH + 5;
     if (photo.caption.trim()) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(6.5);
       doc.setTextColor(...TEXT_MUTED);
       const cap = doc.splitTextToSize(photo.caption.trim(), colW - 4)[0] ?? "";
-      doc.text(cap, x + 2, y + imgH + 5);
+      doc.text(cap, x + 2, captionY);
+      captionY += 3.5;
+    }
+    if (photo.showSerialNumber && photo.serialNumber.trim()) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.5);
+      doc.setTextColor(...TEXT_DARK);
+      doc.text(`S/N: ${photo.serialNumber.trim()}`, x + 2, captionY);
     }
     x += colW + gap;
   }
@@ -570,15 +593,15 @@ export function generateInvoicePDF(
   return doc;
 }
 
-export function downloadInvoicePDF(
+export async function downloadInvoicePDF(
   invoice: Invoice,
   customer: Customer,
   settings: CompanySettings
-): "downloaded" | "opened" {
+): Promise<DownloadOutcome> {
   const doc = generateInvoicePDF(invoice, customer, settings);
   const prefix = isQuote(invoice) ? "quote" : "invoice";
   const blob = doc.output("blob");
-  return downloadBlob(blob, `${prefix}-${invoice.invoiceNumber}.pdf`);
+  return downloadPdfBlob(blob, `${prefix}-${invoice.invoiceNumber}.pdf`);
 }
 
 export function generateReceiptPDF(
@@ -597,11 +620,7 @@ export function generateReceiptPDF(
 
   let y = 20;
   if (settings.logoDataUrl) {
-    try {
-      doc.addImage(settings.logoDataUrl, "JPEG", MARGIN, y - 4, 28, 14);
-    } catch {
-      // skip
-    }
+    addDataUrlImage(doc, settings.logoDataUrl, MARGIN, y - 4, 28, 14);
   }
 
   doc.setFont("helvetica", "bold");
@@ -689,12 +708,12 @@ export function generateReceiptPDF(
   return doc;
 }
 
-export function downloadReceiptPDF(
+export async function downloadReceiptPDF(
   invoice: Invoice,
   customer: Customer,
   settings: CompanySettings
-): "downloaded" | "opened" {
+): Promise<DownloadOutcome> {
   const doc = generateReceiptPDF(invoice, customer, settings);
   const blob = doc.output("blob");
-  return downloadBlob(blob, `receipt-${invoice.invoiceNumber}.pdf`);
+  return downloadPdfBlob(blob, `receipt-${invoice.invoiceNumber}.pdf`);
 }

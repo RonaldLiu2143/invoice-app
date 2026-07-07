@@ -25,6 +25,7 @@ import {
   isQuote,
 } from "@/lib/calculations";
 import { downloadInvoicePDF, downloadReceiptPDF } from "@/lib/pdf";
+import type { DownloadOutcome } from "@/lib/download";
 import { getMailtoLink, shareInvoice } from "@/lib/share";
 import { resolveTemplateId, INVOICE_TEMPLATES } from "@/lib/templates";
 import { InvoicePdfPreview } from "@/components/InvoicePdfPreview";
@@ -96,20 +97,32 @@ export default function InvoiceDetailPage({
     }
   };
 
-  const handleDownloadPDF = () => {
-    if (!customer) return;
-    const outcome = downloadInvoicePDF(invoice, customer, data.settings);
+  const pdfDownloadMessage = (outcome: DownloadOutcome) => {
     if (outcome === "opened") {
-      setShareMsg("PDF opened — use your browser's Share menu to save it.");
+      return "PDF opened — use your browser's Share menu to save it.";
+    }
+    if (outcome === "shared") {
+      return "PDF ready — choose Save to Files or another app.";
+    }
+    return "";
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!customer) return;
+    const outcome = await downloadInvoicePDF(invoice, customer, data.settings);
+    const message = pdfDownloadMessage(outcome);
+    if (message) {
+      setShareMsg(message);
       setTimeout(() => setShareMsg(""), 4000);
     }
   };
 
-  const handleDownloadReceipt = () => {
+  const handleDownloadReceipt = async () => {
     if (!customer) return;
-    const outcome = downloadReceiptPDF(invoice, customer, data.settings);
-    if (outcome === "opened") {
-      setShareMsg("Receipt opened — use your browser's Share menu to save it.");
+    const outcome = await downloadReceiptPDF(invoice, customer, data.settings);
+    const message = pdfDownloadMessage(outcome);
+    if (message) {
+      setShareMsg(message);
       setTimeout(() => setShareMsg(""), 4000);
     }
   };
@@ -317,6 +330,8 @@ export default function InvoiceDetailPage({
             invoice={invoice}
             customer={customer}
             settings={data.settings}
+            templateId={activeTemplateId}
+            status={effectiveStatus}
           />
         ) : (
           <p className="py-8 text-center text-slate-500">Customer not found</p>
