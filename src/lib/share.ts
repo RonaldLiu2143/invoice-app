@@ -10,6 +10,7 @@ import {
   isQuote,
 } from "./calculations";
 import { generateInvoicePDF } from "./pdf";
+import { isMobileDevice } from "./download";
 
 export function buildInvoiceEmailBody(
   invoice: Invoice,
@@ -118,10 +119,12 @@ export async function shareInvoice(
 
   if (typeof navigator !== "undefined" && navigator.share) {
     try {
-      const file = invoicePdfFile(invoice, customer, settings);
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title, text, files: [file] });
-        return "shared";
+      if (isMobileDevice()) {
+        const file = invoicePdfFile(invoice, customer, settings);
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ title, text, files: [file] });
+          return "shared";
+        }
       }
       await navigator.share({ title, text });
       return "shared";

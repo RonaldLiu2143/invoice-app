@@ -1,5 +1,10 @@
 export type DownloadOutcome = "downloaded" | "opened" | "shared";
 
+export function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
+}
+
 /** Download a blob as a file. On iOS, opens in a new tab (Save via share sheet). */
 export function downloadBlob(
   blob: Blob,
@@ -30,7 +35,7 @@ export function downloadBlob(
   return "opened";
 }
 
-/** Save a PDF — prefers the native share sheet on phones for a full, savable file. */
+/** Save a PDF — uses the native share sheet on phones only; desktop gets a direct download. */
 export async function downloadPdfBlob(
   blob: Blob,
   filename: string
@@ -38,6 +43,7 @@ export async function downloadPdfBlob(
   const file = new File([blob], filename, { type: "application/pdf" });
 
   if (
+    isMobileDevice() &&
     typeof navigator !== "undefined" &&
     navigator.canShare?.({ files: [file] })
   ) {
